@@ -1,138 +1,115 @@
-# tiptoe
+<h1 align="center">tiptoe</h1>
 
-**Quiet, block-aware assessment for AI/LLM infrastructure.** A single Go binary.
+<h4 align="center">Quiet, congestion-controlled assessment for AI and ML infrastructure.</h4>
 
-aimap and menlohunt go loud across thousands of hosts. tiptoe goes quiet
-against the one host that is watching back.
+<p align="center">
+  <a href="https://github.com/nuclide-research/tiptoe/releases"><img src="https://img.shields.io/github/v/release/nuclide-research/tiptoe?style=flat-square" alt="release"></a>
+  <a href="https://github.com/nuclide-research/tiptoe/blob/main/LICENSE"><img src="https://img.shields.io/github/license/nuclide-research/tiptoe?style=flat-square" alt="license"></a>
+  <a href="https://golang.org"><img src="https://img.shields.io/badge/go-1.22%2B-00ADD8?style=flat-square&logo=go" alt="go"></a>
+  <a href="https://nuclide-research.com"><img src="https://img.shields.io/badge/by-NuClide-blue?style=flat-square" alt="NuClide"></a>
+</p>
+
+<p align="center">
+  <a href="#features">Features</a> •
+  <a href="#installation">Installation</a> •
+  <a href="#usage">Usage</a> •
+  <a href="#pacer-design">Pacer Design</a> •
+  <a href="#output">Output</a> •
+  <a href="#scope">Scope</a>
+</p>
 
 ---
 
-## The problem tiptoe solves
+tiptoe is a single Go binary that probes one monitored host without tripping its portscan detector. The population scanners in the NuClide arsenal (aimap, scanner, menlohunt) distribute load over thousands of hosts. Point those same tools at a single target and the economics invert. A 40-port fingerprint sweep concentrated on one host is a textbook scan signature. An IPS flags it and filters the source. Every tool that runs after that sees a dark host and reports "no open ports", a false negative presented as a finding.
 
-The NuClide arsenal is built for population sweeps. Load spreads over thousands
-of hosts, so no single host ever sees a scan signature. Point those same tools
-at ONE monitored host and the economics invert. A 1,000-port `nmap` sweep or a
-40-port fingerprint scan, concentrated on a single target, is a textbook scan
-signature. A university or enterprise IPS flags it and filters the source. Then
-every tool that runs after the loud one probes a host that has gone dark, and
-the scan reports "no open ports" — a false negative, presented as a finding.
+tiptoe is the quiet mode. Passive intel first, then one probe at a time, paced by a TCP-style congestion controller, with a block detector that halts the run when the host stops answering.
 
-That failure is not a bug in any one tool. It is a missing capability: the
-arsenal has no quiet mode. tiptoe is that mode.
+# Features
 
-## What tiptoe does differently
+- Single Go binary, standard library only, Go 1.22 or later
+- Passive phase sends the host zero packets (Shodan host API, reverse DNS, crt.sh)
+- Serial active probing, never parallel, never a port scan signature
+- Congestion-controlled pacer: TCP Vegas delay-gradient backoff plus TCP Reno multiplicative decrease, deliberately no slow start
+- Block detection: once a host answers and then goes silent, tiptoe concludes the source is filtered and stops
+- Per-probe pacer trace (measured RTT, baseline, ratio, decision) recorded in the report
+- Noise budget readout: connections counted, peak rate compared against a portscan-detection estimate
+- JSON output shaped for `visorlog ingest`
+- Read-only marker probes only, no credential traffic
 
-**Passive-first.** The reconnaissance phase sends the target zero packets. It
-reads Shodan's cached crawl, reverse DNS, and certificate-transparency logs.
-The port and service picture is built before a single packet reaches the host.
-The cheapest probe is the one you never send.
+# Installation
 
-**Serialized and paced.** One probe at a time. Never a port scan. Parallel
-multi-port connections are the scan signature that portscan detectors fire on,
-so tiptoe does not make them.
-
-**Congestion-controlled.** The pacing is not a fixed delay. tiptoe models a
-stealth assessment as a flow to be rate-controlled, and borrows from TCP.
-
-**Block-aware.** tiptoe watches its own probe outcomes. Once a host has
-answered and then goes silent, tiptoe concludes it has been filtered and stops.
-It does not keep hammering a dark host. That only deepens the block and
-manufactures a misleading null.
-
-## Stealth as congestion control
-
-tiptoe's pacer takes two ideas from forty years of TCP congestion control and
-deliberately rejects a third.
-
-**From TCP Vegas: delay-gradient sensing.** Vegas watches round-trip time and
-reads a rising RTT as a queue building in the network. It slows down before a
-packet is ever dropped. tiptoe does the same. A host whose connect and
-handshake times are creeping up above their baseline is starting to throttle
-us. tiptoe reads that gradient and backs off proactively, before the hard
-block.
-
-**From TCP Reno: multiplicative decrease.** A lost probe, a silent drop or a
-TCP RST, is treated like a lost segment. The probe rate is cut hard, not
-trimmed. A RST is the louder signal of the two and is backed off harder.
-
-**Not from TCP: slow start.** A bulk transfer ramps up exponentially because
-its goal is to find the bandwidth ceiling fast. A stealth probe's goal is the
-opposite: never touch the ceiling at all. So tiptoe's control variable is an
-inter-probe interval, the inverse of TCP's congestion window. It grows when
-cwnd would shrink, it starts deliberately cautious, and it only earns speed.
-
-Every probe is logged in a pacer trace that shows the controller's reasoning:
-the measured RTT, the baseline, the ratio between them, and the decision.
-
-## Build
-
+```bash
+go install -v github.com/nuclide-research/tiptoe@latest
 ```
+
+Or build from source:
+
+```bash
+git clone https://github.com/nuclide-research/tiptoe
+cd tiptoe
 go build -o tiptoe .
 ```
 
-No dependencies. Go 1.22 or later, standard library only.
+Requires Go 1.22 or later. Standard library only.
 
-## Use
+# Usage
 
+```console
+tiptoe assess  192.0.2.10                       # passive intel, then paced active probing
+tiptoe passive 192.0.2.10                       # passive only, zero packets to the host
+tiptoe assess  192.0.2.10 --ports 8000,8888     # probe a specific port set
+tiptoe assess  192.0.2.10 --json                # machine-readable output for the chain
+tiptoe assess  192.0.2.10 --timeout 30s         # duration unit required (8s, 1m, not bare 8)
 ```
-tiptoe assess  manglillo.example.edu      # passive intel, then paced active probing
-tiptoe passive manglillo.example.edu      # passive intel only — zero packets to the host
-tiptoe assess  10.0.0.1 --ports 8000,8888 # probe a specific port set
-tiptoe assess  host --json                # machine-readable output for the chain
-```
 
-An IP address is the only required argument. By default the active phase
-probes the ports passive intel turned up, so for an IP that Shodan has
-indexed, `tiptoe assess <ip>` is fully automatic. For an IP with no Shodan
-record, pass `--ports`.
+An IP address is the only required argument. For a host Shodan has indexed, the active phase probes whatever ports passive intel turned up, so `tiptoe assess <ip>` is fully automatic. For an IP with no Shodan record, pass `--ports`.
 
-`--timeout` takes a duration with a unit (`8s`, `1m`), not a bare number.
+`~/.shodan/api_key` holds the Shodan API key. Without it, the passive phase skips Shodan and `--ports` becomes mandatory.
 
-## What it needs, and what to expect
+# Pacer design
 
-- **Shodan API key** at `~/.shodan/api_key` — the passive phase reads
-  Shodan's cached host record, which is also where the default port list
-  comes from. Without it, pass `--ports` explicitly.
-- **It is slow on purpose.** The congestion-control pacer waits 8–120
-  seconds between probes, so a host with several ports can take minutes.
-  The live status line shows a countdown so the wait reads as progress.
-  For a quick first run, name two or three ports with `--ports`.
+The pacer takes two ideas from forty years of TCP congestion control and rejects a third.
 
-## Where it fits a recon toolchain
+**From TCP Vegas: delay-gradient sensing.** Vegas watches round-trip time and reads a rising RTT as a queue building in the network. It slows down before a packet is dropped. tiptoe does the same. A host whose connect and handshake times are creeping up above their baseline is starting to throttle. tiptoe reads the gradient and backs off before the hard block.
 
-Population scanners (aimap, menlohunt, JAXEN-class tools) are loud and fast
-across thousands of hosts. tiptoe is the opposite end of that spectrum: the
-single monitored host you do not want to spook, or re-probing a host an
-aggressive scan already got the source filtered from. Its `--json` output
-is shaped for ledger ingest, so it slots in after discovery as a quiet
-verification stage.
+**From TCP Reno: multiplicative decrease.** A lost probe (silent drop or TCP RST) is treated like a lost segment. The probe rate is cut hard, not trimmed. A RST is the louder signal of the two and backs off harder.
 
-## Output
+**Not from TCP: slow start.** A bulk transfer ramps up exponentially because its goal is to find the bandwidth ceiling fast. A stealth probe's goal is the opposite. tiptoe's control variable is an inter-probe interval, the inverse of TCP's congestion window. It grows when cwnd would shrink, starts deliberately cautious, and only earns speed.
+
+tiptoe waits 8 to 120 seconds between probes by default. A host with several ports can take minutes. A live status line shows a countdown so the wait reads as progress. For a quick first run, name two or three ports with `--ports`.
+
+# Output
 
 The human report has four parts:
 
-- **passive intel** — what was learned without touching the host.
-- **active probes** — each port, the service identified, and whether it is
-  authenticated. Every active finding is verified, not guessed from a port
-  number.
-- **pacer trace** — the congestion controller's per-probe decisions.
-- **noise** — a budget readout. tiptoe counts its own connections and reports
-  the peak rate against a portscan-detection estimate, so loudness is a number
-  you can see rather than a thing you hope about.
+- **Passive intel.** What was learned without touching the host.
+- **Active probes.** Each port, the service identified, the auth status. Every active finding is verified, not guessed from a port number.
+- **Pacer trace.** The congestion controller's per-probe decisions.
+- **Noise.** Budget readout. tiptoe counts its own connections and reports the peak rate against a portscan-detection estimate, so loudness is a number you can see rather than a thing you hope about.
 
-`--json` emits the whole assessment for `visorlog ingest` or any other stage of
-the chain.
+`--json` emits the full assessment for ledger ingest or any other stage of the chain.
 
-## Where tiptoe sits in the chain
+# Where tiptoe sits in the chain
 
 | Tool | Built for |
-|---|---|
-| aimap, menlohunt | population sweeps — thousands of hosts, load distributed |
-| **tiptoe** | the single monitored host — quiet, paced, block-aware |
+|------|-----------|
+| aimap, scanner, menlohunt | population sweeps, thousands of hosts, load distributed |
+| **tiptoe** | the single monitored host, quiet, paced, block-aware |
 
-Use the loud tools to find the population. Use tiptoe on the host that would
-notice.
+Use the loud tools to find the population. Use tiptoe on the host that would notice.
 
----
+# Scope
 
-Built by [NuClide Research](https://nuclide-research.com).
+tiptoe sends real TCP packets, paced and serialized. It does not authenticate, POST data, execute exploits, or modify anything on the target. Stealth pacing is not authorization. Only probe systems you own or have explicit written authorization to test.
+
+# Our other projects
+
+- [aimap](https://github.com/nuclide-research/aimap) — AI/ML infrastructure fingerprint scanner, the deep-enum stage
+- [scanner](https://github.com/nuclide-research/scanner) — fast banner stage for population sweeps
+- [menlohunt](https://github.com/nuclide-research/menlohunt) — zero-knowledge GCP perimeter scanner
+- [BARE](https://github.com/nuclide-research/BARE) — semantic exploit-module ranking over scanner findings
+- [VisorLog](https://github.com/nuclide-research/visorlog) — finding ledger and ingest pipeline
+
+# License
+
+MIT. Part of the NuClide toolchain. Contact: [nuclide-research.com](https://nuclide-research.com)
