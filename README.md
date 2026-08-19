@@ -3,10 +3,10 @@
 <h4 align="center">Quiet, congestion-controlled assessment for AI and ML infrastructure.</h4>
 
 <p align="center">
-  <a href="https://github.com/zellkernel/tiptoe/releases"><img src="https://img.shields.io/github/v/release/zellkernel/tiptoe?style=flat-square" alt="release"></a>
-  <a href="https://github.com/zellkernel/tiptoe/blob/main/LICENSE"><img src="https://img.shields.io/github/license/zellkernel/tiptoe?style=flat-square" alt="license"></a>
+  <a href="https://github.com/sshpie/tiptoe/releases"><img src="https://img.shields.io/github/v/release/sshpie/tiptoe?style=flat-square" alt="release"></a>
+  <a href="https://github.com/sshpie/tiptoe/blob/main/LICENSE"><img src="https://img.shields.io/github/license/sshpie/tiptoe?style=flat-square" alt="license"></a>
   <a href="https://golang.org"><img src="https://img.shields.io/badge/go-1.22%2B-00ADD8?style=flat-square&logo=go" alt="go"></a>
-  <a href="https://zellkernel.com"><img src="https://img.shields.io/badge/by--blue?style=flat-square" alt=""></a>
+  <a href="https://sshpie.com"><img src="https://img.shields.io/badge/by--blue?style=flat-square" alt=""></a>
 </p>
 
 <p align="center">
@@ -39,13 +39,13 @@ tiptoe is the quiet mode. Passive intel first, then one probe at a time, paced b
 # Installation
 
 ```bash
-go install -v github.com/zellkernel/tiptoe@latest
+go install -v github.com/sshpie/tiptoe@latest
 ```
 
 Or build from source:
 
 ```bash
-git clone https://github.com/zellkernel/tiptoe
+git clone https://github.com/sshpie/tiptoe
 cd tiptoe
 go build -o tiptoe .
 ```
@@ -104,12 +104,12 @@ tiptoe sends real TCP packets, paced and serialized. It does not authenticate, P
 
 # Our other projects
 
-- [aimap](https://github.com/zellkernel/aimap) — AI/ML infrastructure fingerprint scanner, the deep-enum stage
-- [scanner](https://github.com/zellkernel/scanner) — fast banner stage for population sweeps
-- [menlohunt](https://github.com/zellkernel/menlohunt) — zero-knowledge GCP perimeter scanner
-- [BARE](https://github.com/zellkernel/BARE) — semantic exploit-module ranking over scanner findings
-- [VisorLog](https://github.com/zellkernel/visorlog) — finding ledger and ingest pipeline
+- [aimap](https://github.com/sshpie/aimap) — AI/ML infrastructure fingerprint scanner, the deep-enum stage
+- [scanner](https://github.com/sshpie/scanner) — fast banner stage for population sweeps
+- [menlohunt](https://github.com/sshpie/menlohunt) — zero-knowledge GCP perimeter scanner
+- [BARE](https://github.com/sshpie/BARE) — semantic exploit-module ranking over scanner findings
+- [VisorLog](https://github.com/sshpie/visorlog) — finding ledger and ingest pipeline
 
 # License
 
-MIT. Part of the  toolchain. Contact: [zellkernel.com](https://zellkernel.com)
+MIT. Part of the  toolchain. Contact: [sshpie.com](https://sshpie.com)
