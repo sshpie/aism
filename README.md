@@ -6,7 +6,7 @@
   <a href="https://github.com/zellkernel/tiptoe/releases"><img src="https://img.shields.io/github/v/release/zellkernel/tiptoe?style=flat-square" alt="release"></a>
   <a href="https://github.com/zellkernel/tiptoe/blob/main/LICENSE"><img src="https://img.shields.io/github/license/zellkernel/tiptoe?style=flat-square" alt="license"></a>
   <a href="https://golang.org"><img src="https://img.shields.io/badge/go-1.22%2B-00ADD8?style=flat-square&logo=go" alt="go"></a>
-  <a href="https://zellkernel.com"><img src="https://img.shields.io/badge/by-NuClide-blue?style=flat-square" alt="NuClide"></a>
+  <a href="https://zellkernel.com"><img src="https://img.shields.io/badge/by--blue?style=flat-square" alt=""></a>
 </p>
 
 <p align="center">
@@ -20,7 +20,7 @@
 
 ---
 
-tiptoe is a single Go binary that probes one monitored host without tripping its portscan detector. The population scanners in the NuClide arsenal (aimap, scanner, menlohunt) distribute load over thousands of hosts. Point those same tools at a single target and the economics invert. A 40-port fingerprint sweep concentrated on one host is a textbook scan signature. An IPS flags it and filters the source. Every tool that runs after that sees a dark host and reports "no open ports", a false negative presented as a finding.
+tiptoe is a single Go binary that probes one monitored host without tripping its portscan detector. The population scanners in the  arsenal (aimap, scanner, menlohunt) distribute load over thousands of hosts. Point those same tools at a single target and the economics invert. A 40-port fingerprint sweep concentrated on one host is a textbook scan signature. An IPS flags it and filters the source. Every tool that runs after that sees a dark host and reports "no open ports", a false negative presented as a finding.
 
 tiptoe is the quiet mode. Passive intel first, then one probe at a time, paced by a TCP-style congestion controller, with a block detector that halts the run when the host stops answering.
 
@@ -112,4 +112,4 @@ tiptoe sends real TCP packets, paced and serialized. It does not authenticate, P
 
 # License
 
-MIT. Part of the NuClide toolchain. Contact: [zellkernel.com](https://zellkernel.com)
+MIT. Part of the  toolchain. Contact: [zellkernel.com](https://zellkernel.com)

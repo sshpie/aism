@@ -1,6 +1,6 @@
 # tiptoe
 
-Quiet, block-aware assessment for AI/LLM infrastructure. The NuClide arsenal
+Quiet, block-aware assessment for AI/LLM infrastructure. The  arsenal
 (aimap, menlohunt) is built for population sweeps where load spreads over
 thousands of hosts. tiptoe is the quiet counterpart for the single monitored
 host: passive-first recon that sends the target zero packets, serialized active

@@ -1,6 +1,6 @@
 // Command tiptoe is a quiet, block-aware assessor for AI/LLM infrastructure.
 //
-// The NuClide arsenal is built for population sweeps — aimap, menlohunt and the
+// The  arsenal is built for population sweeps — aimap, menlohunt and the
 // rest spread their load over thousands of hosts, so no single host ever sees
 // a scan signature. Concentrate those tools on ONE monitored host and they go
 // loud: the host's IPS flags the scan and every tool after it runs blind
@@ -52,7 +52,7 @@ func printBanner() {
   | |_(_)_ __| |_ ___  ___
   | __| | '_ \ __/ _ \/ -_)
    \__|_| .__/\__\___/\___|
-        |_|`+sgr(ansiReset)+sgr(ansiDim)+`   v`+version+`  ·  NuClide Research`+
+        |_|`+sgr(ansiReset)+sgr(ansiDim)+`   v`+version+`  ·  `+
 		sgr(ansiReset)+`
 
 `+sgr(ansiBold)+`   quiet, block-aware assessment for AI/LLM infrastructure`+
