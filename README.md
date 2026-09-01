@@ -12,6 +12,7 @@
 <p align="center">
   <a href="#problem">Problem</a> •
   <a href="#cisco-integration">Cisco Integration</a> •
+  <a href="#detection-intelligence">Detection</a> •
   <a href="#installation">Installation</a> •
   <a href="#usage">Usage</a> •
   <a href="#pacer-design">Pacer Design</a> •
@@ -45,7 +46,7 @@ Catalyst Center
           |   block detection: halts when host goes silent         |
           +--------------------------------------------------------+
           |
-          +-- VERIFIED_UNAUTH findings (50+ platforms: Ollama, Qdrant, MLflow, LangFlow, ...)
+          +-- VERIFIED_UNAUTH findings (100+ platforms: Ollama, Qdrant, MLflow, LangFlow, ...)
           |   labeled with Cisco AI Taxonomy IDs (OB/AITech/AISubtech)
           |
           +-- Catalyst Center        tag device "shadow-ai-detected"
@@ -381,10 +382,53 @@ specific voice model IDs (`"af_"`, `"tts-1"`).
 
 ---
 
+## Detection Intelligence
+
+AISM's detections are grounded in original research, not CVE databases. Each layer below came from binary RE, live-host observation, or autonomous worm telemetry — not vendor documentation.
+
+### Ollama Model Poisoning
+
+After confirming an Ollama instance, AISM fetches the full model list and deep-inspects each model for two injection classes documented in the DEADBUG worm research (1,347 compromised hosts, 3,949 models):
+
+| Signal | Method | Injection class |
+|---|---|---|
+| Model named `gpt-4:latest`, `claude-3-opus:latest`, `gpt-4o:latest` | `/api/tags` name match | Known worm artifact |
+| Model named after any closed commercial LLM | `/api/tags` prefix match | Impersonation deployment |
+| Canary content in `.system` field | `/api/show` body scan | V2 — system prompt injection |
+| Non-empty `.messages[]` array | `/api/show` body scan | V3 — pre-conversation injection |
+
+V3 is the stealthier variant: the worm injects into stored message history rather than the system prompt, so it persists even when the system prompt is cleared and survives model pulls. Legitimate Ollama models ship with no stored message history — a non-empty array is anomalous regardless of content.
+
+Escalates to **CRITICAL** on any match.
+
+### MCP Tool Description Poisoning
+
+After confirming a network-accessible MCP HTTP server, AISM calls `tools/list` and scans each tool's `description` field for 18 injection patterns. Tool description injection (V2 in the DEADBUG-MCP taxonomy) fires at LLM planning time — before any tool call executes — and leaves zero trace in call logs. The `[IMPORTANT: ...]` bracket pattern was confirmed effective by Microsoft's GitHub Copilot security team.
+
+Escalates to **CRITICAL** when poisoning is detected.
+
+### Cisco ASA WebVPN
+
+Three exposure checks grounded in live-ASA testing and binary RE of `lina`/`vpnagentd`:
+
+| Check | Path | Finding |
+|---|---|---|
+| SAML SP metadata | `/+CSCOE+/saml/sp/metadata` | Exposed without auth on all ASA versions with SAML configured; reveals SP EntityID and ACS URL |
+| Logon bypass | `/+CSCOE+/logon.html?fcadbadd=1` | Cisco-internal debug parameter left in production; returns full portal HTML (11KB+) without credentials |
+| ASDM exposure | `/admin/` | Management interface accessible; JAR URL embeds exact ASA version string for precise CVE matching |
+
+### Voice AI CORS/CSWSH
+
+On confirmed voice AI services, AISM probes for `Access-Control-Allow-Origin: *` with a spoofed `Origin` header. A wildcard CORS policy on a voice service enables cross-site WebSocket hijacking: an attacker's page opens a WebSocket connection to the server and controls TTS output or receives ASR transcript without user interaction.
+
+Escalates confirmed UNAUTH voice services to **CRITICAL** when CSWSH risk is present.
+
+---
+
 ## Features
 
 - Single Go binary, standard library only, Go 1.22 or later
-- **95+ platform fingerprints** — inference servers, vector DBs, agent platforms, document processors, model registries, a full voice AI layer, and network-accessible MCP HTTP servers
+- **100+ platform fingerprints** — inference servers, vector DBs, agent platforms, document processors, model registries, voice AI, MCP servers, and Cisco network infrastructure
 - **Cisco Catalyst Center** — pull device inventory, push shadow-AI tags
 - **Cisco AI Taxonomy** — every finding labeled with OB/AITech/AISubtech IDs from Cisco's AI Taxonomy Navigator v1.0.0
 - **Cisco Secure Access (SSE)** — blocks shadow AI IPs in the SSE destination list (IP-layer containment)
@@ -397,9 +441,11 @@ specific voice model IDs (`"af_"`, `"tts-1"`).
 - **ThousandEyes** — correlates degraded app scores via Meraki assurance API; provisions TE agents on eligible networks when shadow AI is found
 - **Cisco XDR** — CTIM sighting bundle submission via OAuth2
 - **Cisco Webex** — Adaptive Card findings with Acknowledge/Isolate action buttons; threaded follow-up for containment results; auto-provision room; bot token valid for Webex Messaging MCP Server
+- **Ollama model poisoning detection** — post-confirm scan of deployed model names and internals; flags known worm artifacts (`gpt-4:latest`, `claude-3-opus:latest`), impersonation names, V2 system prompt injection, and V3 pre-conversation message injection; escalates to CRITICAL
 - **Voice AI layer** — 42 fingerprints across `voice-synthesis` (TTS/voice-clone), `voice-asr` (ASR/STT), and `voice-infrastructure`; confirmed via snake's tested probe paths, Gradio `/info` titles, and OpenAI-compat model IDs; includes CORS/CSWSH check on confirmed voice services
 - **MCP HTTP server detection** — fingerprints network-accessible MCP Streamable HTTP servers (family `mcp-server`) via POST-based JSON-RPC `initialize`; after confirm, calls `tools/list` and scans each tool description for V2 injection patterns (`[IMPORTANT:...]` bracket injection, credential harvesting paths, known worm campaign markers); escalates to CRITICAL when poisoning is found
-- **Tome-backed port knowledge** — `DefaultPorts()` returns the union of canonical AI/ML ports across all 95+ signatures; used as probe fallback when Shodan has no cached record
+- **Cisco ASA WebVPN** — fingerprints exposed ASA WebVPN portals and ASDM management interfaces; deep probe checks SAML metadata exposure, `fcadbadd=1` logon bypass, and ASDM version extraction; grounded in live-ASA testing and binary RE of `lina`/`vpnagentd`
+- **Tome-backed port knowledge** — `DefaultPorts()` returns the union of canonical AI/ML ports across all 100+ signatures; used as probe fallback when Shodan has no cached record
 - Passive phase sends the host zero packets (Shodan host API, reverse DNS, crt.sh)
 - Serial active probing — never parallel, never a port scan signature
 - Congestion-controlled pacer: TCP Vegas delay-gradient backoff + TCP Reno multiplicative decrease
