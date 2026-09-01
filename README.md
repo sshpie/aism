@@ -359,10 +359,32 @@ MCP server.
 
 ---
 
+### Voice AI Coverage
+
+tiptoe fingerprints **42 voice AI platforms** across three families. These services are
+common in research clusters, edge deployments, and AI workstations — and almost universally
+unauthenticated by default.
+
+| Family | Platforms (sample) | Distinctive ports |
+|---|---|---|
+| `voice-synthesis` | Kokoro TTS, AllTalk TTS, CosyVoice 2, GPT-SoVITS, Fish Speech, MaryTTS, Piper TTS, RVC WebUI, Applio, Moshi, OpenedAI Speech, OpenVoiceOS, ChatTTS, MetaVoice, F5-TTS, Bark, StyleTTS2, Tortoise, Parler, Spark TTS, MegaTTS3, IndexTTS, OpenVoice, Orpheus TTS, Coqui TTS, EmotiVoice, MeloTTS, OpenTTS, Chatterbox TTS | 8880, 50000, 9880, 6969, 10200, 59125, 7851, 7865, 7861, 58003, 8998, 5500, 5002, 8181 |
+| `voice-asr` | WhisperX, Whisper ASR Webservice, Modern Whisper, WhisperLive, Whisper.cpp Server, FunASR, WeNet, WhisperFusion, Vosk, Subtitle Generator | 9090, 10095, 10086, 2700 |
+| `voice-infrastructure` | Rhasspy, Silero VAD, Lunary | 12101, 10400 |
+
+Detection sources: snake's `DETECT_CHECKS` (tested against live instances), the VDT
+voice AI wiki (59-platform corpus), and the galleria corpus (port sets for 30+ voice platforms).
+
+Gradio-based platforms are confirmed via `/info` JSON, which exposes a `{"title":"<AppName>"}`
+field unique to each app — a reliable discriminator when many services share port 7860.
+OpenAI-compatible voice gateways (Kokoro, OpenedAI Speech) are confirmed by their
+specific voice model IDs (`"af_"`, `"tts-1"`).
+
+---
+
 ## Features
 
 - Single Go binary, standard library only, Go 1.22 or later
-- **50+ platform fingerprints** — derived from the NuClide tome corpus (339 AI/ML platforms); inference servers, vector DBs, agent platforms, document processors, model registries
+- **90+ platform fingerprints** — inference servers, vector DBs, agent platforms, document processors, model registries, and a full voice AI layer (TTS, ASR, voice infrastructure)
 - **Cisco Catalyst Center** — pull device inventory, push shadow-AI tags
 - **Cisco AI Taxonomy** — every finding labeled with OB/AITech/AISubtech IDs from Cisco's AI Taxonomy Navigator v1.0.0
 - **Cisco Secure Access (SSE)** — blocks shadow AI IPs in the SSE destination list (IP-layer containment)
@@ -375,7 +397,8 @@ MCP server.
 - **ThousandEyes** — correlates degraded app scores via Meraki assurance API; provisions TE agents on eligible networks when shadow AI is found
 - **Cisco XDR** — CTIM sighting bundle submission via OAuth2
 - **Cisco Webex** — Adaptive Card findings with Acknowledge/Isolate action buttons; threaded follow-up for containment results; auto-provision room; bot token valid for Webex Messaging MCP Server
-- **Tome-backed port knowledge** — `DefaultPorts()` returns the union of canonical AI/ML ports; used as probe fallback when Shodan has no cached record
+- **Voice AI layer** — 42 fingerprints across `voice-synthesis` (TTS/voice-clone), `voice-asr` (ASR/STT), and `voice-infrastructure`; confirmed via snake's tested probe paths, Gradio `/info` titles, and OpenAI-compat model IDs
+- **Tome-backed port knowledge** — `DefaultPorts()` returns the union of canonical AI/ML ports across all 90+ signatures; used as probe fallback when Shodan has no cached record
 - Passive phase sends the host zero packets (Shodan host API, reverse DNS, crt.sh)
 - Serial active probing — never parallel, never a port scan signature
 - Congestion-controlled pacer: TCP Vegas delay-gradient backoff + TCP Reno multiplicative decrease
