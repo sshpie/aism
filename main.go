@@ -289,6 +289,9 @@ func runCatalog(args []string) {
 	isePass := fs.String("ise-pass", "", "Cisco ISE ERS password")
 	isePolicy := fs.String("ise-policy", "shadow-ai-quarantine", "ISE ANC policy name to apply")
 
+	// Cisco AI Defense — submit detected MCP servers for supply chain scanning.
+	aiDefenseKey := fs.String("aidefense-key", "", "Cisco AI Defense Management API key (Administration > API Keys)")
+
 	_ = fs.Parse(args)
 
 	if *catalystURL == "" || *catalystToken == "" {
@@ -331,6 +334,10 @@ func runCatalog(args []string) {
 	var iseClient *cisco.ISEClient
 	if *iseURL != "" && *iseUser != "" && *isePass != "" {
 		iseClient = cisco.NewISEClient(*iseURL, *iseUser, *isePass)
+	}
+	var aiDefenseClient *cisco.AIDefenseClient
+	if *aiDefenseKey != "" {
+		aiDefenseClient = cisco.NewAIDefenseClient(*aiDefenseKey)
 	}
 
 	// ThousandEyes — query once upfront and cache; correlate + provision after each finding.
@@ -475,6 +482,26 @@ func runCatalog(args []string) {
 				fmt.Fprintf(os.Stderr, "      [!] ise: %v\n", err)
 			} else {
 				fmt.Fprintf(os.Stderr, "      [+] ise: ANC policy %q applied to %s\n", *isePolicy, ip)
+			}
+		}
+
+		// Cisco AI Defense — register detected MCP servers for supply chain scanning.
+		// AI Defense checks the server's tools, capabilities, and dependencies for
+		// prompt injection vulnerabilities and supply chain risks.
+		if aiDefenseClient != nil {
+			for _, r := range a.Probes {
+				if r.State != StateUnauth || r.Family != "agent-platform" {
+					continue
+				}
+				name := fmt.Sprintf("shadow-mcp-%s-%d", ip, r.Port)
+				serverURL := fmt.Sprintf("http://%s:%d", ip, r.Port)
+				sid, err := aiDefenseClient.RegisterMCPServer(name, serverURL,
+					cisco.MCPConnectionSSE, "")
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "      [!] ai-defense: %v\n", err)
+				} else {
+					fmt.Fprintf(os.Stderr, "      [+] ai-defense: MCP server submitted for supply chain scan (id: %s)\n", sid)
+				}
 			}
 		}
 

@@ -238,6 +238,35 @@ Required: ISE ERS API enabled; ERS admin role; ANC policy named to match `--ise-
 
 ---
 
+### Cisco AI Defense (Supply Chain Scanning)
+
+When tiptoe finds an unauth MCP server (family: `agent-platform`) it registers it with
+[Cisco AI Defense](https://developer.cisco.com/docs/ai-defense-management/) for automated
+supply chain scanning — checking the server's tools, exposed capabilities, and dependencies
+for prompt injection vulnerabilities, unsafe tool definitions, and known supply chain risks.
+
+```bash
+tiptoe catalog \
+  --catalyst-url https://catalyst.corp.example.com \
+  --catalyst-token TOKEN \
+  --aidefense-key YOUR_MANAGEMENT_API_KEY
+```
+
+Obtain the key in the AI Defense UI under **Administration > API Keys**. This is the Management
+API key — separate from the Inspection API key. After scan completion, query findings:
+
+```
+GET https://api.security.cisco.com/api/ai-defense/v1/mcp/servers?severity=HIGH&severity=CRITICAL
+```
+
+Runtime enforcement events (blocked prompt injection, data leakage):
+
+```
+POST /events  {"resource_types": ["MCP_SERVER"], "event_action": "Block"}
+```
+
+---
+
 ### Cisco Webex
 
 Per-device findings post as **Adaptive Cards** with structured fact sets and action buttons.
@@ -295,6 +324,7 @@ MCP server.
 - **Cisco Umbrella** — blocks shadow AI IPs in the Umbrella DNS block list (DNS-layer containment)
 - **Cisco Secure Endpoint** — looks up the managed connector by IP; optional endpoint isolation
 - **Cisco ISE** — applies ANC quarantine policy (identity/VLAN-layer containment)
+- **Cisco AI Defense** — registers detected MCP servers for supply chain scanning (prompt injection, unsafe tool definitions, dependency risks); queries runtime enforcement events
 - **ThousandEyes** — correlates degraded app scores via Meraki assurance API; provisions TE agents on eligible networks when shadow AI is found
 - **Cisco XDR** — CTIM sighting bundle submission via OAuth2
 - **Cisco Webex** — Adaptive Card findings with Acknowledge/Isolate action buttons; threaded follow-up for containment results; auto-provision room; bot token valid for Webex Messaging MCP Server
