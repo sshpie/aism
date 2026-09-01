@@ -11,6 +11,7 @@
 
 <p align="center">
   <a href="#problem">Problem</a> •
+  <a href="#features">Features</a> •
   <a href="#cisco-integration">Cisco Integration</a> •
   <a href="#detection-intelligence">Detection</a> •
   <a href="#installation">Installation</a> •
@@ -26,6 +27,27 @@
 Employees deploy LLM servers, vector databases, and model registries on managed devices without telling security teams. Most ship with no authentication. Existing scanners don't look for them — and when they do, they announce themselves. A port scan against a monitored host trips IPS detection, the source is flagged, and every tool that follows sees a dark target. False negatives presented as findings.
 
 AISM pulls device inventory from **Cisco Catalyst Center** and assesses each host below IPS detection thresholds. Findings go to **Cisco XDR** and **Webex**. **ThousandEyes** application health is correlated via the Meraki assurance API to confirm active usage before any finding is reported.
+
+---
+
+## Features
+
+Single Go binary, standard library only, Go 1.22 or later.
+
+| Cisco integrations | Detection & scanning |
+|---|---|
+| **Catalyst Center** — device inventory pull, shadow-AI tagging | **100+ platform fingerprints** — inference servers, vector DBs, agent platforms, document processors, model registries, voice AI, MCP servers, Cisco network infrastructure |
+| **AI Taxonomy** — every finding labeled with OB/AITech/AISubtech IDs | **Voice AI layer** — 42 fingerprints; CORS/CSWSH check on confirmed voice services |
+| **Secure Access (SSE)** — IP-layer containment via destination block list | **MCP HTTP server detection** — `tools/list` scan for V2 tool description injection; escalates to CRITICAL |
+| **Umbrella** — DNS-layer containment via block list | **Ollama model poisoning** — impersonation names, V2 system prompt injection, V3 message history injection; escalates to CRITICAL |
+| **Secure Endpoint** — connector lookup by IP; optional endpoint isolation | **Cisco ASA WebVPN** — SAML metadata exposure, `fcadbadd=1` logon bypass, ASDM version extraction |
+| **ISE** — ANC quarantine policy (identity/VLAN-layer containment) | **Passive phase** — zero packets sent (Shodan, reverse DNS, crt.sh) |
+| **AI Defense** — MCP server supply chain scan; runtime enforcement query | **Serial active probing** — never parallel, never a port scan signature |
+| **Secure Network Analytics** — flow query to confirm active usage, client count, byte volume | **Congestion-controlled pacer** — TCP Vegas delay-gradient + TCP Reno multiplicative decrease |
+| **NSO (RESTCONF)** — ACL push to all managed devices (network device level containment) | **Block detection** — halts when a host goes silent mid-probe, reports why |
+| **ThousandEyes** — app score correlation; TE agent provisioning on shadow-AI networks | **Pacer trace** — measured RTT, baseline, phi, and decision in every report |
+| **XDR** — CTIM sighting bundle via OAuth2 | **Noise budget** — connection count and peak rate vs. portscan-detection threshold |
+| **Webex** — Adaptive Card findings; Acknowledge/Isolate buttons; threaded containment follow-up | **JSON output** — structured for `visorlog ingest` or any downstream stage |
 
 ---
 
@@ -420,27 +442,6 @@ Three exposure checks grounded in live-ASA testing and binary RE of `lina`/`vpna
 On confirmed voice AI services, AISM probes for `Access-Control-Allow-Origin: *` with a spoofed `Origin` header. A wildcard CORS policy on a voice service enables cross-site WebSocket hijacking: an attacker's page opens a WebSocket connection to the server and controls TTS output or receives ASR transcript without user interaction.
 
 Escalates confirmed UNAUTH voice services to **CRITICAL** when CSWSH risk is present.
-
----
-
-## Features
-
-Single Go binary, standard library only, Go 1.22 or later.
-
-| Cisco integrations | Detection & scanning |
-|---|---|
-| **Catalyst Center** — device inventory pull, shadow-AI tagging | **100+ platform fingerprints** — inference servers, vector DBs, agent platforms, document processors, model registries, voice AI, MCP servers, Cisco network infrastructure |
-| **AI Taxonomy** — every finding labeled with OB/AITech/AISubtech IDs | **Voice AI layer** — 42 fingerprints; CORS/CSWSH check on confirmed voice services |
-| **Secure Access (SSE)** — IP-layer containment via destination block list | **MCP HTTP server detection** — `tools/list` scan for V2 tool description injection; escalates to CRITICAL |
-| **Umbrella** — DNS-layer containment via block list | **Ollama model poisoning** — impersonation names, V2 system prompt injection, V3 message history injection; escalates to CRITICAL |
-| **Secure Endpoint** — connector lookup by IP; optional endpoint isolation | **Cisco ASA WebVPN** — SAML metadata exposure, `fcadbadd=1` logon bypass, ASDM version extraction |
-| **ISE** — ANC quarantine policy (identity/VLAN-layer containment) | **Passive phase** — zero packets sent (Shodan, reverse DNS, crt.sh) |
-| **AI Defense** — MCP server supply chain scan; runtime enforcement query | **Serial active probing** — never parallel, never a port scan signature |
-| **Secure Network Analytics** — flow query to confirm active usage, client count, byte volume | **Congestion-controlled pacer** — TCP Vegas delay-gradient + TCP Reno multiplicative decrease |
-| **NSO (RESTCONF)** — ACL push to all managed devices (network device level containment) | **Block detection** — halts when a host goes silent mid-probe, reports why |
-| **ThousandEyes** — app score correlation; TE agent provisioning on shadow-AI networks | **Pacer trace** — measured RTT, baseline, phi, and decision in every report |
-| **XDR** — CTIM sighting bundle via OAuth2 | **Noise budget** — connection count and peak rate vs. portscan-detection threshold |
-| **Webex** — Adaptive Card findings; Acknowledge/Isolate buttons; threaded containment follow-up | **JSON output** — structured for `visorlog ingest` or any downstream stage |
 
 ---
 
