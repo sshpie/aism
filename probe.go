@@ -66,15 +66,17 @@ func dialRTT(ip string, port int, timeout time.Duration) (time.Duration, bool, b
 // only when the platform's own API answers — and makes adding the rest of the
 // LLM-infra stack a one-row change.
 type llmSignature struct {
-	platform    string // display name
-	family      string // model-runtime / vector-db / agent-platform / ui / notebook / etc.
-	ports       []int  // canonical port(s) for DefaultPorts() fallback; nil = unknown
-	rootHint    string // lowercase substring in GET / body or headers (a soft signal)
-	confirmPath string // an API path that proves identity
-	confirmHint string // a substring a 200 confirm response must contain
-	versionKey  string // JSON key holding the version, when the confirm response has one
-	authPath    string // path whose HTTP status reveals the auth state (optional)
-	noAuth      bool   // platform ships no auth, so a confirmed match is itself an exposure
+	platform      string // display name
+	family        string // model-runtime / vector-db / agent-platform / ui / notebook / etc.
+	ports         []int  // canonical port(s) for DefaultPorts() fallback; nil = unknown
+	rootHint      string // lowercase substring in GET / body or headers (a soft signal)
+	confirmPath   string // an API path that proves identity
+	confirmHint   string // a substring a 200 confirm response must contain
+	confirmMethod string // HTTP method for the confirm probe (default "GET"; "POST" for JSON-RPC)
+	confirmBody   string // request body for POST-based confirms
+	versionKey    string // JSON key holding the version, when the confirm response has one
+	authPath      string // path whose HTTP status reveals the auth state (optional)
+	noAuth        bool   // platform ships no auth, so a confirmed match is itself an exposure
 }
 
 // signatures is tiptoe's LLM-infrastructure knowledge, kept as data. Every row
@@ -144,7 +146,14 @@ func identify(p *Probe, ip, hostname string, port int, timeout time.Duration) {
 		var soft *llmSignature
 		for i := 0; i < len(ordered) && i < maxConfirm; i++ {
 			sig := ordered[i]
-			cs, _, cbody, cok := httpGet(client, base+sig.confirmPath)
+			var cs int
+			var cbody string
+			var cok bool
+			if sig.confirmMethod == "POST" {
+				cs, _, cbody, cok = httpPost(client, base+sig.confirmPath, sig.confirmBody)
+			} else {
+				cs, _, cbody, cok = httpGet(client, base+sig.confirmPath)
+			}
 			if cok && cs == 200 && strings.Contains(cbody, sig.confirmHint) {
 				fillConfirmed(p, client, base, sig, cbody)
 				return
@@ -220,6 +229,31 @@ func fillConfirmed(p *Probe, client *http.Client, base string, sig llmSignature,
 		p.Evidence = fmt.Sprintf("%s confirmed via %s; auth state not probed.",
 			name, sig.confirmPath)
 	}
+
+	// MCP tool description poisoning check (DEADBUG-MCP V2 research).
+	// Network-accessible MCP servers expose tools/list without auth.
+	// Tool descriptions are consumed by the LLM at planning-time — injection
+	// here fires before any tool call and leaves no trace in call logs.
+	if sig.family == "mcp-server" {
+		if flagged := probeMCPToolPoisoning(base, client); len(flagged) > 0 {
+			p.Severity = "CRITICAL"
+			p.Evidence += fmt.Sprintf("; TOOL DESCRIPTION POISONING DETECTED: %s",
+				strings.Join(flagged, "; "))
+		} else {
+			p.Evidence += "; tools/list enumerated, no V2 injection patterns detected"
+		}
+	}
+
+	// Voice AI CORS check — wildcard Access-Control-Allow-Origin enables
+	// cross-site WebSocket hijacking (CSWSH) for real-time voice stream control.
+	if sig.family == "voice-asr" || sig.family == "voice-synthesis" {
+		if probeVoiceAICORS(client, base) {
+			p.Evidence += "; CSWSH RISK: Access-Control-Allow-Origin: * — cross-site WebSocket hijacking enables real-time voice stream control"
+			if p.Severity == "HIGH" {
+				p.Severity = "CRITICAL"
+			}
+		}
+	}
 }
 
 func newHTTPClient(timeout time.Duration) *http.Client {
@@ -256,6 +290,28 @@ func httpGet(client *http.Client, url string) (int, string, string, bool) {
 		fmt.Fprintf(&h, "%s: %s\n", k, strings.Join(v, ","))
 	}
 	return resp.StatusCode, h.String(), string(body), true
+}
+
+// httpPost performs one POST with a JSON body and returns the same tuple as
+// httpGet. Used for JSON-RPC confirms (MCP initialize, tools/list).
+func httpPost(client *http.Client, url, body string) (int, string, string, bool) {
+	req, err := http.NewRequest("POST", url, strings.NewReader(body))
+	if err != nil {
+		return 0, "", "", false
+	}
+	req.Header.Set("User-Agent", "tiptoe/"+version)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := client.Do(req)
+	if err != nil {
+		return 0, "", "", false
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(io.LimitReader(resp.Body, 64<<10)) // 64 KB — tool lists can be large
+	var h strings.Builder
+	for k, v := range resp.Header {
+		fmt.Fprintf(&h, "%s: %s\n", k, strings.Join(v, ","))
+	}
+	return resp.StatusCode, h.String(), string(b), true
 }
 
 // bannerGrab reads whatever a non-HTTP service volunteers on connect.

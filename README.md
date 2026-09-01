@@ -384,7 +384,7 @@ specific voice model IDs (`"af_"`, `"tts-1"`).
 ## Features
 
 - Single Go binary, standard library only, Go 1.22 or later
-- **90+ platform fingerprints** — inference servers, vector DBs, agent platforms, document processors, model registries, and a full voice AI layer (TTS, ASR, voice infrastructure)
+- **95+ platform fingerprints** — inference servers, vector DBs, agent platforms, document processors, model registries, a full voice AI layer, and network-accessible MCP HTTP servers
 - **Cisco Catalyst Center** — pull device inventory, push shadow-AI tags
 - **Cisco AI Taxonomy** — every finding labeled with OB/AITech/AISubtech IDs from Cisco's AI Taxonomy Navigator v1.0.0
 - **Cisco Secure Access (SSE)** — blocks shadow AI IPs in the SSE destination list (IP-layer containment)
@@ -397,8 +397,9 @@ specific voice model IDs (`"af_"`, `"tts-1"`).
 - **ThousandEyes** — correlates degraded app scores via Meraki assurance API; provisions TE agents on eligible networks when shadow AI is found
 - **Cisco XDR** — CTIM sighting bundle submission via OAuth2
 - **Cisco Webex** — Adaptive Card findings with Acknowledge/Isolate action buttons; threaded follow-up for containment results; auto-provision room; bot token valid for Webex Messaging MCP Server
-- **Voice AI layer** — 42 fingerprints across `voice-synthesis` (TTS/voice-clone), `voice-asr` (ASR/STT), and `voice-infrastructure`; confirmed via snake's tested probe paths, Gradio `/info` titles, and OpenAI-compat model IDs
-- **Tome-backed port knowledge** — `DefaultPorts()` returns the union of canonical AI/ML ports across all 90+ signatures; used as probe fallback when Shodan has no cached record
+- **Voice AI layer** — 42 fingerprints across `voice-synthesis` (TTS/voice-clone), `voice-asr` (ASR/STT), and `voice-infrastructure`; confirmed via snake's tested probe paths, Gradio `/info` titles, and OpenAI-compat model IDs; includes CORS/CSWSH check on confirmed voice services
+- **MCP HTTP server detection** — fingerprints network-accessible MCP Streamable HTTP servers (family `mcp-server`) via POST-based JSON-RPC `initialize`; after confirm, calls `tools/list` and scans each tool description for V2 injection patterns (`[IMPORTANT:...]` bracket injection, credential harvesting paths, known worm campaign markers); escalates to CRITICAL when poisoning is found
+- **Tome-backed port knowledge** — `DefaultPorts()` returns the union of canonical AI/ML ports across all 95+ signatures; used as probe fallback when Shodan has no cached record
 - Passive phase sends the host zero packets (Shodan host API, reverse DNS, crt.sh)
 - Serial active probing — never parallel, never a port scan signature
 - Congestion-controlled pacer: TCP Vegas delay-gradient backoff + TCP Reno multiplicative decrease
