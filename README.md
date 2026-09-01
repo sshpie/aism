@@ -55,16 +55,16 @@ Single Go binary, standard library only, Go 1.22 or later.
 
 | Capability | Detail |
 |---|---|
-| 100+ platform fingerprints | Inference servers, vector DBs, agent platforms, document processors, model registries, voice AI, MCP servers, Cisco network infrastructure |
-| Voice AI layer | 42 fingerprints across TTS, ASR, and voice infrastructure; CORS/CSWSH check on confirmed services |
-| MCP HTTP server detection | `tools/list` scan for V2 tool description injection; escalates to CRITICAL |
-| Ollama model poisoning | Flags worm artifacts, impersonation names, V2 system prompt injection, V3 message history injection; escalates to CRITICAL |
-| Cisco ASA WebVPN | SAML metadata exposure, `fcadbadd=1` logon bypass, ASDM version extraction |
-| Passive phase | Zero packets sent to the host (Shodan, reverse DNS, crt.sh) |
+| 100+ platform fingerprints | Inference servers, vector DBs, agent platforms, voice AI, MCP |
+| Voice AI layer | 42 fingerprints; CORS/CSWSH check on confirmed services |
+| MCP HTTP server detection | Scans tool descriptions for injection; escalates to CRITICAL |
+| Ollama model poisoning | Flags worm artifacts and V2/V3 injection; escalates to CRITICAL |
+| Cisco ASA WebVPN | SAML exposure, logon bypass, ASDM version extraction |
+| Passive phase | Zero packets sent to the host |
 | Serial active probing | Never parallel; never a port scan signature |
-| Congestion-controlled pacer | TCP Vegas delay-gradient backoff + TCP Reno multiplicative decrease |
-| Block detection | Halts when a host goes silent mid-probe; reports why |
-| JSON output | Machine-readable findings for SIEM, ticketing, or custom pipelines |
+| Congestion-controlled pacer | TCP Vegas + Reno backoff below IPS thresholds |
+| Block detection | Halts and reports when a host goes silent |
+| JSON output | Machine-readable for SIEM, ticketing, or custom pipelines |
 
 ---
 
