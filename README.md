@@ -427,32 +427,22 @@ Escalates confirmed UNAUTH voice services to **CRITICAL** when CSWSH risk is pre
 
 ## Features
 
-- Single Go binary, standard library only, Go 1.22 or later
-- **100+ platform fingerprints** — inference servers, vector DBs, agent platforms, document processors, model registries, voice AI, MCP servers, and Cisco network infrastructure
-- **Cisco Catalyst Center** — pull device inventory, push shadow-AI tags
-- **Cisco AI Taxonomy** — every finding labeled with OB/AITech/AISubtech IDs from Cisco's AI Taxonomy Navigator v1.0.0
-- **Cisco Secure Access (SSE)** — blocks shadow AI IPs in the SSE destination list (IP-layer containment)
-- **Cisco Umbrella** — blocks shadow AI IPs in the Umbrella DNS block list (DNS-layer containment)
-- **Cisco Secure Endpoint** — looks up the managed connector by IP; optional endpoint isolation
-- **Cisco ISE** — applies ANC quarantine policy (identity/VLAN-layer containment)
-- **Cisco AI Defense** — registers detected MCP servers for supply chain scanning (prompt injection, unsafe tool definitions, dependency risks); queries runtime enforcement events
-- **Cisco Secure Network Analytics** — queries flows to shadow AI IPs to confirm active usage and quantify client count + byte volume; queries security events already flagged by SNA
-- **Cisco NSO (RESTCONF)** — pushes `deny ip any host {ip}` ACL rules to all NSO-managed devices; 5th containment layer at the network device level
-- **ThousandEyes** — correlates degraded app scores via Meraki assurance API; provisions TE agents on eligible networks when shadow AI is found
-- **Cisco XDR** — CTIM sighting bundle submission via OAuth2
-- **Cisco Webex** — Adaptive Card findings with Acknowledge/Isolate action buttons; threaded follow-up for containment results; auto-provision room; bot token valid for Webex Messaging MCP Server
-- **Ollama model poisoning detection** — post-confirm scan of deployed model names and internals; flags known worm artifacts (`gpt-4:latest`, `claude-3-opus:latest`), impersonation names, V2 system prompt injection, and V3 pre-conversation message injection; escalates to CRITICAL
-- **Voice AI layer** — 42 fingerprints across `voice-synthesis` (TTS/voice-clone), `voice-asr` (ASR/STT), and `voice-infrastructure`; confirmed via snake's tested probe paths, Gradio `/info` titles, and OpenAI-compat model IDs; includes CORS/CSWSH check on confirmed voice services
-- **MCP HTTP server detection** — fingerprints network-accessible MCP Streamable HTTP servers (family `mcp-server`) via POST-based JSON-RPC `initialize`; after confirm, calls `tools/list` and scans each tool description for V2 injection patterns (`[IMPORTANT:...]` bracket injection, credential harvesting paths, known worm campaign markers); escalates to CRITICAL when poisoning is found
-- **Cisco ASA WebVPN** — fingerprints exposed ASA WebVPN portals and ASDM management interfaces; deep probe checks SAML metadata exposure, `fcadbadd=1` logon bypass, and ASDM version extraction; grounded in live-ASA testing and binary RE of `lina`/`vpnagentd`
-- **Tome-backed port knowledge** — `DefaultPorts()` returns the union of canonical AI/ML ports across all 100+ signatures; used as probe fallback when Shodan has no cached record
-- Passive phase sends the host zero packets (Shodan host API, reverse DNS, crt.sh)
-- Serial active probing — never parallel, never a port scan signature
-- Congestion-controlled pacer: TCP Vegas delay-gradient backoff + TCP Reno multiplicative decrease
-- Block detection: when a host goes silent after answering, aism stops and says why
-- Per-probe pacer trace in the report (measured RTT, baseline, phi, decision)
-- Noise budget readout: connection count and peak rate vs. portscan-detection estimate
-- JSON output for `visorlog ingest` or any downstream stage
+Single Go binary, standard library only, Go 1.22 or later.
+
+| Cisco integrations | Detection & scanning |
+|---|---|
+| **Catalyst Center** — device inventory pull, shadow-AI tagging | **100+ platform fingerprints** — inference servers, vector DBs, agent platforms, document processors, model registries, voice AI, MCP servers, Cisco network infrastructure |
+| **AI Taxonomy** — every finding labeled with OB/AITech/AISubtech IDs | **Voice AI layer** — 42 fingerprints; CORS/CSWSH check on confirmed voice services |
+| **Secure Access (SSE)** — IP-layer containment via destination block list | **MCP HTTP server detection** — `tools/list` scan for V2 tool description injection; escalates to CRITICAL |
+| **Umbrella** — DNS-layer containment via block list | **Ollama model poisoning** — impersonation names, V2 system prompt injection, V3 message history injection; escalates to CRITICAL |
+| **Secure Endpoint** — connector lookup by IP; optional endpoint isolation | **Cisco ASA WebVPN** — SAML metadata exposure, `fcadbadd=1` logon bypass, ASDM version extraction |
+| **ISE** — ANC quarantine policy (identity/VLAN-layer containment) | **Passive phase** — zero packets sent (Shodan, reverse DNS, crt.sh) |
+| **AI Defense** — MCP server supply chain scan; runtime enforcement query | **Serial active probing** — never parallel, never a port scan signature |
+| **Secure Network Analytics** — flow query to confirm active usage, client count, byte volume | **Congestion-controlled pacer** — TCP Vegas delay-gradient + TCP Reno multiplicative decrease |
+| **NSO (RESTCONF)** — ACL push to all managed devices (network device level containment) | **Block detection** — halts when a host goes silent mid-probe, reports why |
+| **ThousandEyes** — app score correlation; TE agent provisioning on shadow-AI networks | **Pacer trace** — measured RTT, baseline, phi, and decision in every report |
+| **XDR** — CTIM sighting bundle via OAuth2 | **Noise budget** — connection count and peak rate vs. portscan-detection threshold |
+| **Webex** — Adaptive Card findings; Acknowledge/Isolate buttons; threaded containment follow-up | **JSON output** — structured for `visorlog ingest` or any downstream stage |
 
 ---
 
