@@ -583,25 +583,6 @@ The human report has four sections:
 
 ---
 
-## Where aism sits in the chain
-
-| Tool | Built for |
-|------|-----------|
-| aimap, scanner | population sweeps, thousands of hosts, load distributed |
-| **aism** | the single monitored host — quiet, paced, block-aware |
-
-Use the population tools to find the fleet. Use aism on the host that watches back.
-
----
-
-## Related projects
-
-- [aimap](https://github.com/sshpie/aimap) — AI/ML infrastructure fingerprinter and deep enumerator
-- [BARE](https://github.com/sshpie/BARE) — semantic exploit-module ranking over scanner findings
-- [agent-logging-system](https://github.com/sshpie/agent-logging-system) — operational monitor for AI agent pipelines
-
----
-
 ## License
 
 MIT. See [LICENSE](LICENSE).
