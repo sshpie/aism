@@ -23,11 +23,9 @@
 
 ## Problem
 
-AI/ML services are being deployed on enterprise networks without the knowledge of network or security teams. Employees spin up LLM inference servers, vector databases, and model registries on managed devices — often with no authentication. These services expose sensitive data, accept arbitrary prompt input, and create lateral movement paths that existing vulnerability scanners do not detect.
+Employees deploy LLM servers, vector databases, and model registries on managed devices without telling security teams. Most ship with no authentication. Existing scanners don't look for them — and when they do, they announce themselves. A port scan against a monitored host trips IPS detection, the source is flagged, and every tool that follows sees a dark target. False negatives presented as findings.
 
-Traditional scanners applied to a single monitored host generate a recognizable scan signature. An IPS flags the source and every tool that follows sees a dark host. Security teams get false negatives presented as findings.
-
-aism is the quiet alternative. It integrates with **Cisco Catalyst Center** to pull managed device inventory, assesses each device below IPS detection thresholds, correlates findings with **ThousandEyes** application health via the Meraki assurance API, and pushes results to **Cisco XDR** and **Cisco Webex**.
+AISM pulls device inventory from **Cisco Catalyst Center** and assesses each host below IPS detection thresholds. Findings go to **Cisco XDR** and **Webex**. **ThousandEyes** application health is correlated via the Meraki assurance API to confirm active usage before any finding is reported.
 
 ---
 
