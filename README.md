@@ -238,13 +238,50 @@ Required: ISE ERS API enabled; ERS admin role; ANC policy named to match `--ise-
 
 ---
 
-### Webex (MCP-native)
+### Cisco Webex
 
-The Webex bot integration sends per-device alerts and catalog summaries to any Webex room.
-The bot token is also valid as a credential for the
+Per-device findings post as **Adaptive Cards** with structured fact sets and action buttons.
+Catalog summaries and follow-up containment actions are threaded under each finding card
+so the room stays readable.
+
+```bash
+tiptoe catalog \
+  --catalyst-url https://catalyst.corp.example.com \
+  --catalyst-token TOKEN \
+  --webex-token BOT_TOKEN \
+  --webex-room ROOM_ID
+```
+
+If `--webex-room` is omitted, tiptoe calls `GET /rooms` to find (or creates) a
+`tiptoe-alerts` space automatically.
+
+**Card format** — each finding posts:
+- Header: "Shadow AI Detected" with host, IP, platform, family, port, auth status
+- Two action buttons: **Acknowledge** and **Isolate** (`Action.Submit`)
+- Fallback markdown for clients without card support
+
+**Action webhooks** — register once with `RegisterActionWebhook(targetURL)`:
+
+```
+POST https://webexapis.com/v1/webhooks
+  resource: attachmentActions
+  event:    created
+```
+
+The webhook fires when a button is clicked. The notification carries no payload
+(encrypted). Retrieve the submitted data with `GET /v1/attachment/actions/{id}`.
+
+**Thread replies** — after ISE ANC or Secure Endpoint isolation completes, tiptoe
+threads a status reply to the original card with the result, keeping the room clean.
+
+**MCP server** — the bot token is valid for the
 [Webex Messaging MCP Server](https://developer.webex.com/mcp/docs/messaging-mcp-server)
-(`https://mcp.webexapis.com/mcp/webex-messaging`) — any MCP-enabled agent (Claude Code,
-AutoGen, LangGraph) can receive tiptoe findings natively without a separate webhook.
+(`https://mcp.webexapis.com/mcp/webex-messaging`). Any MCP-enabled agent (Claude Code,
+LangGraph, AutoGen) can receive and act on tiptoe findings without a separate integration.
+
+Required OAuth scopes: `spark:messages_write`, `spark:rooms_read`, `spark:rooms_write`,
+`spark:webhooks_read`, `spark:webhooks_write`. Add `spark:mcp` when routing through the
+MCP server.
 
 ---
 
@@ -260,7 +297,7 @@ AutoGen, LangGraph) can receive tiptoe findings natively without a separate webh
 - **Cisco ISE** — applies ANC quarantine policy (identity/VLAN-layer containment)
 - **ThousandEyes** — correlates degraded app scores via Meraki assurance API; provisions TE agents on eligible networks when shadow AI is found
 - **Cisco XDR** — CTIM sighting bundle submission via OAuth2
-- **Cisco Webex** — per-device alerts and catalog summaries; bot token valid for Webex Messaging MCP Server
+- **Cisco Webex** — Adaptive Card findings with Acknowledge/Isolate action buttons; threaded follow-up for containment results; auto-provision room; bot token valid for Webex Messaging MCP Server
 - **Tome-backed port knowledge** — `DefaultPorts()` returns the union of canonical AI/ML ports; used as probe fallback when Shodan has no cached record
 - Passive phase sends the host zero packets (Shodan host API, reverse DNS, crt.sh)
 - Serial active probing — never parallel, never a port scan signature
