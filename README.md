@@ -238,6 +238,51 @@ Required: ISE ERS API enabled; ERS admin role; ANC policy named to match `--ise-
 
 ---
 
+### Cisco Secure Network Analytics (Stealthwatch)
+
+When shadow AI is confirmed on an IP, tiptoe queries SNA for all flows TO that IP
+in the previous 60 minutes. Flow data turns a "service is listening" finding into a
+"service is actively used" finding with client count and byte volume.
+
+```bash
+tiptoe catalog \
+  --catalyst-url https://catalyst.corp.example.com \
+  --catalyst-token TOKEN \
+  --sna-host sna.corp.example.com \
+  --sna-user admin \
+  --sna-pass PASSWORD \
+  --sna-tenant-id 1234
+```
+
+Also queries the SNA security events API for any anomalies already flagged on the host.
+Requires SNA v7.0.0 or later. TLS certificate verification is skipped to match SNA's
+typical self-signed deployment.
+
+---
+
+### Cisco NSO (RESTCONF — ACL-layer containment)
+
+When shadow AI is found, tiptoe pushes a `deny ip any host {shadowAI-IP}` ACL rule to
+every NSO-managed device via RESTCONF. This enforces containment at the network device
+level — below SSE (IP-layer) and Umbrella (DNS-layer).
+
+```bash
+tiptoe catalog \
+  --catalyst-url https://catalyst.corp.example.com \
+  --catalyst-token TOKEN \
+  --nso-host nso.corp.example.com \
+  --nso-port 8080 \
+  --nso-user admin \
+  --nso-pass PASSWORD \
+  --nso-acl shadow-ai-block
+```
+
+The named ACL (`--nso-acl`, default `shadow-ai-block`) must already exist on each device.
+NSO RESTCONF base: `http://{host}:8080/restconf` (HTTPS: port 8443).
+YANG path: `.../config/tailf-ned-cisco-ios:ip/access-list/extended={acl}`.
+
+---
+
 ### Cisco AI Defense (Supply Chain Scanning)
 
 When tiptoe finds an unauth MCP server (family: `agent-platform`) it registers it with
@@ -325,6 +370,8 @@ MCP server.
 - **Cisco Secure Endpoint** — looks up the managed connector by IP; optional endpoint isolation
 - **Cisco ISE** — applies ANC quarantine policy (identity/VLAN-layer containment)
 - **Cisco AI Defense** — registers detected MCP servers for supply chain scanning (prompt injection, unsafe tool definitions, dependency risks); queries runtime enforcement events
+- **Cisco Secure Network Analytics** — queries flows to shadow AI IPs to confirm active usage and quantify client count + byte volume; queries security events already flagged by SNA
+- **Cisco NSO (RESTCONF)** — pushes `deny ip any host {ip}` ACL rules to all NSO-managed devices; 5th containment layer at the network device level
 - **ThousandEyes** — correlates degraded app scores via Meraki assurance API; provisions TE agents on eligible networks when shadow AI is found
 - **Cisco XDR** — CTIM sighting bundle submission via OAuth2
 - **Cisco Webex** — Adaptive Card findings with Acknowledge/Isolate action buttons; threaded follow-up for containment results; auto-provision room; bot token valid for Webex Messaging MCP Server

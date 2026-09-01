@@ -172,6 +172,107 @@ type RuntimeEvent struct {
 	EventAction   string `json:"event_action"` // Block | Allow
 }
 
+// GetMCPServer returns the details and current threat summary for a registered
+// MCP server by its AI Defense server ID.
+//
+// GET /mcp/servers/{id}
+func (c *AIDefenseClient) GetMCPServer(serverID string) (*MCPServerThreat, error) {
+	resp, err := c.do("GET", "/mcp/servers/"+serverID, nil)
+	if err != nil {
+		return nil, fmt.Errorf("ai-defense: get MCP server: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("ai-defense: get MCP server: HTTP %d", resp.StatusCode)
+	}
+	var result struct {
+		MCPServer MCPServerThreat `json:"mcp_server"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("ai-defense: get MCP server: decode: %w", err)
+	}
+	return &result.MCPServer, nil
+}
+
+// ScanMCPServerDirect scans an MCP server for supply chain vulnerabilities
+// WITHOUT registering it in the AI Defense MCP registry. Use for one-off
+// checks on newly-discovered servers before deciding whether to register them.
+// Returns a scan ID; poll GetMCPScanStatus until Status == "COMPLETED".
+//
+// POST /mcp/servers/scan
+func (c *AIDefenseClient) ScanMCPServerDirect(serverURL string, connType MCPConnectionType) (scanID string, err error) {
+	body := map[string]any{
+		"url":            serverURL,
+		"connectionType": string(connType),
+	}
+	resp, err := c.do("POST", "/mcp/servers/scan", body)
+	if err != nil {
+		return "", fmt.Errorf("ai-defense: scan MCP server: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 && resp.StatusCode != 201 {
+		b, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("ai-defense: scan MCP server: HTTP %d: %s", resp.StatusCode, b)
+	}
+	var result struct {
+		ScanID string `json:"scan_id"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", fmt.Errorf("ai-defense: scan MCP server: decode: %w", err)
+	}
+	return result.ScanID, nil
+}
+
+// MCPScanStatus is the result of GET /mcp/servers/scan/{scan_id}.
+type MCPScanStatus struct {
+	ScanID   string `json:"scan_id"`
+	Status   string `json:"status"`   // INPROGRESS | COMPLETED | FAILED
+	Severity string `json:"severity"` // LOW | MEDIUM | HIGH | CRITICAL (when COMPLETED)
+}
+
+// GetMCPScanStatus retrieves the status of a direct MCP scan started with
+// ScanMCPServerDirect. Poll until Status == "COMPLETED" or "FAILED".
+//
+// GET /mcp/servers/scan/{scan_id}
+func (c *AIDefenseClient) GetMCPScanStatus(scanID string) (*MCPScanStatus, error) {
+	resp, err := c.do("GET", "/mcp/servers/scan/"+scanID, nil)
+	if err != nil {
+		return nil, fmt.Errorf("ai-defense: scan status: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("ai-defense: scan status: HTTP %d", resp.StatusCode)
+	}
+	var result MCPScanStatus
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("ai-defense: scan status: decode: %w", err)
+	}
+	return &result, nil
+}
+
+// GetEventConversation retrieves the full conversation (messages exchanged)
+// that triggered an AI Defense runtime enforcement event. Use to understand
+// the exact prompt or tool call that was blocked.
+//
+// GET /events/{event_id}/conversation
+func (c *AIDefenseClient) GetEventConversation(eventID string) ([]map[string]any, error) {
+	resp, err := c.do("GET", "/events/"+eventID+"/conversation", nil)
+	if err != nil {
+		return nil, fmt.Errorf("ai-defense: event conversation: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("ai-defense: event conversation: HTTP %d", resp.StatusCode)
+	}
+	var result struct {
+		Conversation []map[string]any `json:"conversation"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("ai-defense: event conversation: decode: %w", err)
+	}
+	return result.Conversation, nil
+}
+
 // ListRuntimeEvents returns recent AI Defense runtime events for the given
 // resource type, filtered to the given action. Used to correlate prompt
 // injection or data leakage events on detected AI services with tiptoe findings.

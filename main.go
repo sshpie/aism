@@ -292,6 +292,19 @@ func runCatalog(args []string) {
 	// Cisco AI Defense — submit detected MCP servers for supply chain scanning.
 	aiDefenseKey := fs.String("aidefense-key", "", "Cisco AI Defense Management API key (Administration > API Keys)")
 
+	// Cisco Secure Network Analytics (Stealthwatch) — query flows and security events.
+	snaHost := fs.String("sna-host", "", "Cisco SNA Management Console hostname (no scheme)")
+	snaUser := fs.String("sna-user", "", "SNA username")
+	snaPass := fs.String("sna-pass", "", "SNA password")
+	snaTenantID := fs.String("sna-tenant-id", "", "SNA tenant ID (numeric)")
+
+	// Cisco NSO (RESTCONF) — push ACL deny rules to managed devices.
+	nsoHost := fs.String("nso-host", "", "Cisco NSO hostname")
+	nsoPort := fs.Int("nso-port", 8080, "NSO RESTCONF port (8080=HTTP, 8443=HTTPS)")
+	nsoUser := fs.String("nso-user", "", "NSO username")
+	nsoPass := fs.String("nso-pass", "", "NSO password")
+	nsoACL := fs.String("nso-acl", "shadow-ai-block", "ACL name to add deny rules to on NSO-managed devices")
+
 	_ = fs.Parse(args)
 
 	if *catalystURL == "" || *catalystToken == "" {
@@ -338,6 +351,20 @@ func runCatalog(args []string) {
 	var aiDefenseClient *cisco.AIDefenseClient
 	if *aiDefenseKey != "" {
 		aiDefenseClient = cisco.NewAIDefenseClient(*aiDefenseKey)
+	}
+	var snaClient *cisco.StealthwatchClient
+	if *snaHost != "" && *snaUser != "" && *snaPass != "" && *snaTenantID != "" {
+		sc, err := cisco.NewStealthwatchClient(*snaHost, *snaUser, *snaPass, *snaTenantID)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "[!] sna: auth failed: %v\n", err)
+		} else {
+			snaClient = sc
+			defer snaClient.Close()
+		}
+	}
+	var nsoClient *cisco.NSOClient
+	if *nsoHost != "" && *nsoUser != "" && *nsoPass != "" {
+		nsoClient = cisco.NewNSOClient(*nsoHost, *nsoUser, *nsoPass, *nsoPort)
 	}
 
 	// ThousandEyes — query once upfront and cache; correlate + provision after each finding.
@@ -502,6 +529,36 @@ func runCatalog(args []string) {
 				} else {
 					fmt.Fprintf(os.Stderr, "      [+] ai-defense: MCP server submitted for supply chain scan (id: %s)\n", sid)
 				}
+			}
+		}
+
+		// Cisco Secure Network Analytics — query flows TO the shadow AI server's IP
+		// to confirm the service is actively used, not just listening. Quantifies
+		// client count and byte volume for the finding.
+		if snaClient != nil {
+			sum, err := snaClient.QueryFlowsToIP(ip, 60)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "      [!] sna: %v\n", err)
+			} else if sum.TotalFlows > 0 {
+				fmt.Fprintf(os.Stderr, "      [+] sna: %d active flow(s) to %s in last 60min (%d bytes)\n",
+					sum.TotalFlows, ip, sum.TotalBytes)
+				services = append(services,
+					fmt.Sprintf("SNA: %d active flows (%d bytes)", sum.TotalFlows, sum.TotalBytes))
+			} else {
+				fmt.Fprintf(os.Stderr, "      [-] sna: no flows to %s in last 60min (service may be idle)\n", ip)
+			}
+		}
+
+		// Cisco NSO — push an ACL deny rule to block traffic to the shadow AI server.
+		// This enforces containment at the network device level, below SSE and Umbrella.
+		if nsoClient != nil {
+			blocked, errs := nsoClient.BlockIPViaACLAllDevices(*nsoACL, ip)
+			for _, e := range errs {
+				fmt.Fprintf(os.Stderr, "      [!] nso: %v\n", e)
+			}
+			if len(blocked) > 0 {
+				fmt.Fprintf(os.Stderr, "      [+] nso: ACL deny rule pushed to %d device(s): %s\n",
+					len(blocked), strings.Join(blocked, ", "))
 			}
 		}
 
