@@ -57,9 +57,7 @@ func printBanner() {
         |_|`+sgr(ansiReset)+sgr(ansiDim)+`   v`+version+`  ·  github.com/sshpie/tiptoe`+
 		sgr(ansiReset)+`
 
-`+sgr(ansiBold)+`   quiet shadow AI/ML discovery for Cisco networks`+
-		sgr(ansiReset)+`
-`+sgr(ansiDim)+`   95+ platforms · voice AI · MCP poisoning`+sgr(ansiReset)+"\n")
+`+sgr(ansiBold)+`   Enterprise Shadow AI discovery`+sgr(ansiReset)+"\n")
 }
 
 func usage() {
