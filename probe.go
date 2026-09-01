@@ -243,6 +243,16 @@ func fillConfirmed(p *Probe, client *http.Client, base string, sig llmSignature,
 		}
 	}
 
+	// Cisco ASA WebVPN deep probe — fcadbadd=1 bypass + SAML metadata + ASDM.
+	if sig.platform == "Cisco ASA WebVPN" {
+		if flags := probeASAWebVPN(base, client); len(flags) > 0 {
+			p.Evidence += fmt.Sprintf("; ASA EXPOSURE: %s", strings.Join(flags, "; "))
+			if p.Severity == "LOW" {
+				p.Severity = "HIGH"
+			}
+		}
+	}
+
 	// MCP tool description poisoning check (DEADBUG-MCP V2 research).
 	// Network-accessible MCP servers expose tools/list without auth.
 	// Tool descriptions are consumed by the LLM at planning-time — injection
