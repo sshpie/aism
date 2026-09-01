@@ -45,15 +45,19 @@ Catalyst Center
           |   block detection: halts when host goes silent         |
           +--------------------------------------------------------+
           |
-          +-- VERIFIED_UNAUTH findings (Ollama, Qdrant, MLflow, ...)
+          +-- VERIFIED_UNAUTH findings (50+ platforms: Ollama, Qdrant, MLflow, LangFlow, ...)
           |   labeled with Cisco AI Taxonomy IDs (OB/AITech/AISubtech)
           |
-          +-- Catalyst Center     tag device "shadow-ai-detected"
-          +-- Cisco Secure Access add IP to blocked destination list (SSE enforcement)
-          +-- ThousandEyes        correlate degraded app scores (score < 70)
+          +-- Catalyst Center        tag device "shadow-ai-detected"
+          +-- Cisco Secure Access    add IP to SSE blocked destination list (IP-layer)
+          +-- Cisco Umbrella         add IP to DNS block list (DNS-layer)
+          +-- Cisco Secure Endpoint  look up managed endpoint; optional isolation
+          +-- Cisco ISE              apply ANC quarantine policy (VLAN-layer)
+          +-- ThousandEyes           correlate degraded app scores (score < 70)
           |   provision TE agent on eligible Meraki networks
-          +-- Cisco XDR           CTIM sighting bundle (IP + services + taxonomy)
-          +-- Webex               per-device alert + catalog summary
+          +-- Cisco XDR              CTIM sighting bundle (IP + services + taxonomy)
+          +-- Webex                  per-device alert + catalog summary
+          |   MCP: https://mcp.webexapis.com/mcp/webex-messaging (agent-native)
 ```
 
 ### Catalyst Center
@@ -168,16 +172,96 @@ Required OAuth2 scope: `policies.destinationLists:write`.
 
 ---
 
+### Cisco Umbrella (DNS-layer)
+
+When shadow AI is found, tiptoe adds the server's IP to a `shadow-ai-detected` block list
+in Cisco Umbrella via the [Policies API v2](https://developer.cisco.com/docs/cloud-security/)
+(`POST /organizations/{orgId}/destinationlists/{id}/destinations`).
+
+Umbrella blocks DNS queries to the IP before a TCP connection can form — complementary to
+SSE's IP-layer blocking. Together they cover: DNS resolution (Umbrella) + packet forwarding (SSE).
+
+```bash
+tiptoe catalog \
+  --catalyst-url https://catalyst.corp.example.com \
+  --catalyst-token TOKEN \
+  --umbrella-client-id CLIENT_ID \
+  --umbrella-client-secret CLIENT_SECRET
+```
+
+---
+
+### Cisco Secure Endpoint
+
+When shadow AI is found, tiptoe queries the Secure Endpoint API v3 for the managed endpoint
+connector installed on the device (`GET /computers?internal_ip={ip}`). With `--amp-isolate`,
+it triggers network isolation on the connector (`PUT /computers/{guid}/isolation`).
+
+Isolation severs the device's network access while keeping the connector connected to the
+Secure Endpoint cloud — the endpoint remains manageable and can be remediated remotely.
+
+```bash
+tiptoe catalog \
+  --catalyst-url https://catalyst.corp.example.com \
+  --catalyst-token TOKEN \
+  --amp-client-id AMP_CLIENT_ID \
+  --amp-api-key AMP_API_KEY \
+  --amp-cloud nam \
+  --amp-isolate
+```
+
+Cloud regions: `nam` (default) | `eu` | `apjc`
+
+---
+
+### Cisco ISE (Identity-layer quarantine)
+
+When shadow AI is found, tiptoe applies an ANC (Adaptive Network Control) quarantine policy
+to the endpoint via the [ISE ERS API](https://developer.cisco.com/docs/identity-services-engine/)
+(`POST /ers/config/ancendpoint/apply`).
+
+ISE re-routes the device through a restricted VLAN and can require re-authentication before
+network access is restored. Create the policy (`shadow-ai-quarantine`) in ISE under
+Policy > Policy Elements > ANC Policies before use.
+
+```bash
+tiptoe catalog \
+  --catalyst-url https://catalyst.corp.example.com \
+  --catalyst-token TOKEN \
+  --ise-url https://ise.corp.example.com:9060 \
+  --ise-user admin \
+  --ise-pass PASSWORD \
+  --ise-policy shadow-ai-quarantine
+```
+
+Required: ISE ERS API enabled; ERS admin role; ANC policy named to match `--ise-policy`.
+
+---
+
+### Webex (MCP-native)
+
+The Webex bot integration sends per-device alerts and catalog summaries to any Webex room.
+The bot token is also valid as a credential for the
+[Webex Messaging MCP Server](https://developer.webex.com/mcp/docs/messaging-mcp-server)
+(`https://mcp.webexapis.com/mcp/webex-messaging`) — any MCP-enabled agent (Claude Code,
+AutoGen, LangGraph) can receive tiptoe findings natively without a separate webhook.
+
+---
+
 ## Features
 
 - Single Go binary, standard library only, Go 1.22 or later
-- **Cisco Catalyst Center** integration — pull device inventory, push shadow-AI tags
-- **Cisco AI Taxonomy** classification — every finding labeled with OB/AITech/AISubtech IDs from Cisco's AI Taxonomy Navigator v1.0.0
-- **ThousandEyes** correlation via Meraki assurance API — app health scores + impacted client counts
-- **ThousandEyes provisioning** — activates TE agents on eligible Meraki networks when shadow AI is found (`POST /extensions/thousandEyes/networks`)
-- **Cisco Secure Access (SSE)** — blocks shadow AI server IPs in the SSE destination list (Policies API v2, `bundleTypeId: 2`, `access: "block"`); list created automatically
-- **Cisco XDR** integration — CTIM sighting bundle submission via OAuth2
-- **Cisco Webex** integration — per-device alerts and catalog summaries
+- **50+ platform fingerprints** — derived from the NuClide tome corpus (339 AI/ML platforms); inference servers, vector DBs, agent platforms, document processors, model registries
+- **Cisco Catalyst Center** — pull device inventory, push shadow-AI tags
+- **Cisco AI Taxonomy** — every finding labeled with OB/AITech/AISubtech IDs from Cisco's AI Taxonomy Navigator v1.0.0
+- **Cisco Secure Access (SSE)** — blocks shadow AI IPs in the SSE destination list (IP-layer containment)
+- **Cisco Umbrella** — blocks shadow AI IPs in the Umbrella DNS block list (DNS-layer containment)
+- **Cisco Secure Endpoint** — looks up the managed connector by IP; optional endpoint isolation
+- **Cisco ISE** — applies ANC quarantine policy (identity/VLAN-layer containment)
+- **ThousandEyes** — correlates degraded app scores via Meraki assurance API; provisions TE agents on eligible networks when shadow AI is found
+- **Cisco XDR** — CTIM sighting bundle submission via OAuth2
+- **Cisco Webex** — per-device alerts and catalog summaries; bot token valid for Webex Messaging MCP Server
+- **Tome-backed port knowledge** — `DefaultPorts()` returns the union of canonical AI/ML ports; used as probe fallback when Shodan has no cached record
 - Passive phase sends the host zero packets (Shodan host API, reverse DNS, crt.sh)
 - Serial active probing — never parallel, never a port scan signature
 - Congestion-controlled pacer: TCP Vegas delay-gradient backoff + TCP Reno multiplicative decrease
@@ -253,30 +337,49 @@ tiptoe passive lab.example.edu
 
 ```
 catalog flags:
-  --catalyst-url <url>      Catalyst Center base URL (required)
-  --catalyst-token <token>  Catalyst Center X-Auth-Token (required)
-  --catalyst-skip-tls       skip TLS verification (lab/self-signed certs)
-  --ports <csv>             ports to probe per device (default: passive intel)
-  --timeout <dur>           per-probe timeout (default 10s)
-  --xdr-client-id <id>      Cisco XDR OAuth2 client ID
-  --xdr-client-secret <s>   Cisco XDR OAuth2 client secret
-  --xdr-region <r>          us (default) | eu | apjc
-  --webex-token <token>     Webex bot bearer token
-  --webex-room <id>         Webex room ID
-  --meraki-api-key <key>    Meraki Dashboard API key (ThousandEyes correlation)
-  --meraki-org-id <id>      Meraki organization ID
-  --meraki-network-ids <csv> comma-separated Meraki network IDs to correlate
+  --catalyst-url <url>         Catalyst Center base URL (required)
+  --catalyst-token <token>     Catalyst Center X-Auth-Token (required)
+  --catalyst-skip-tls          skip TLS verification (lab/self-signed certs)
+  --ports <csv>                ports to probe per device (default: passive intel → tome)
+  --timeout <dur>              per-probe timeout (default 10s)
+
+  --xdr-client-id <id>         Cisco XDR OAuth2 client ID
+  --xdr-client-secret <s>      Cisco XDR OAuth2 client secret
+  --xdr-region <r>             us (default) | eu | apjc
+
+  --webex-token <token>        Webex bot bearer token
+  --webex-room <id>            Webex room ID
+
+  --meraki-api-key <key>       Meraki Dashboard API key (ThousandEyes)
+  --meraki-org-id <id>         Meraki organization ID
+  --meraki-network-ids <csv>   Meraki network IDs to correlate
+
+  --sse-client-id <id>         Cisco Secure Access OAuth2 client ID
+  --sse-client-secret <s>      Cisco Secure Access OAuth2 client secret
+
+  --umbrella-client-id <id>    Cisco Umbrella OAuth2 client ID
+  --umbrella-client-secret <s> Cisco Umbrella OAuth2 client secret
+
+  --amp-client-id <id>         Cisco Secure Endpoint API client ID
+  --amp-api-key <key>          Cisco Secure Endpoint API key
+  --amp-cloud <cloud>          nam (default) | eu | apjc
+  --amp-isolate                isolate endpoints where shadow AI is found
+
+  --ise-url <url>              Cisco ISE ERS base URL (e.g. https://ise.corp:9060)
+  --ise-user <user>            ISE ERS username
+  --ise-pass <pass>            ISE ERS password
+  --ise-policy <name>          ANC policy name to apply (default: shadow-ai-quarantine)
 
 assess flags:
-  --ports <csv>             ports to probe (default: from passive intel)
-  --timeout <dur>           per-probe timeout (default 10s)
-  --json                    machine-readable output
-  --passive-only            skip the active phase
-  --xdr-client-id <id>      Cisco XDR client ID
-  --xdr-client-secret <s>   Cisco XDR client secret
-  --xdr-region <r>          us | eu | apjc (default us)
-  --webex-token <token>     Webex bot bearer token
-  --webex-room <id>         Webex room ID
+  --ports <csv>                ports to probe (default: passive intel → tome)
+  --timeout <dur>              per-probe timeout (default 10s)
+  --json                       machine-readable output
+  --passive-only               skip the active phase
+  --xdr-client-id <id>         Cisco XDR client ID
+  --xdr-client-secret <s>      Cisco XDR client secret
+  --xdr-region <r>             us | eu | apjc (default us)
+  --webex-token <token>        Webex bot bearer token
+  --webex-room <id>            Webex room ID
 ```
 
 ---

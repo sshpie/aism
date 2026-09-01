@@ -67,7 +67,8 @@ func dialRTT(ip string, port int, timeout time.Duration) (time.Duration, bool, b
 // LLM-infra stack a one-row change.
 type llmSignature struct {
 	platform    string // display name
-	family      string // model-runtime / notebook / ui
+	family      string // model-runtime / vector-db / agent-platform / ui / notebook / etc.
+	ports       []int  // canonical port(s) for DefaultPorts() fallback; nil = unknown
 	rootHint    string // lowercase substring in GET / body or headers (a soft signal)
 	confirmPath string // an API path that proves identity
 	confirmHint string // a substring a 200 confirm response must contain
@@ -81,22 +82,27 @@ type llmSignature struct {
 // platform is left out rather than guessed. Table order is match priority:
 // specific platforms before the generic OpenAI-compatible catch-all.
 var signatures = []llmSignature{
-	{platform: "Ollama", family: "model-runtime", rootHint: "ollama is running",
+	{platform: "Ollama", family: "model-runtime", ports: []int{11434},
+		rootHint: "ollama is running",
 		confirmPath: "/api/tags", confirmHint: `"models"`, noAuth: true},
-	{platform: "JupyterHub", family: "notebook", rootHint: "/hub/",
+	{platform: "JupyterHub", family: "notebook", ports: []int{8000, 8001, 8080},
+		rootHint:    "/hub/",
 		confirmPath: "/hub/api", confirmHint: `"version"`, versionKey: "version",
 		authPath: "/hub/api/users"},
-	{platform: "Open WebUI", family: "ui", rootHint: "open webui",
+	{platform: "Open WebUI", family: "ui", ports: []int{8080, 3000},
+		rootHint:    "open webui",
 		confirmPath: "/api/config", confirmHint: `"name"`, versionKey: "version"},
-	{platform: "Gradio", family: "ui", rootHint: "gradio",
+	{platform: "Gradio", family: "ui", ports: []int{7860, 7861},
+		rootHint:    "gradio",
 		confirmPath: "/config", confirmHint: `"version"`, versionKey: "version"},
-	{platform: "Jupyter Server", family: "notebook",
+	{platform: "Jupyter Server", family: "notebook", ports: []int{8888, 8889},
 		confirmPath: "/api", confirmHint: `"version"`, versionKey: "version",
 		authPath: "/api/contents"},
-	{platform: "Text Generation Inference", family: "model-runtime",
+	{platform: "Text Generation Inference", family: "model-runtime", ports: []int{8080},
 		confirmPath: "/info", confirmHint: `"model_id"`, versionKey: "version",
 		noAuth: true},
 	{platform: "OpenAI-compatible model server", family: "model-runtime",
+		ports:       []int{8000, 8080, 3000, 5000, 1234},
 		confirmPath: "/v1/models", confirmHint: `"data"`, noAuth: true},
 }
 

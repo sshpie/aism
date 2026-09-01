@@ -208,9 +208,11 @@ func runCmd(args []string, passiveOnly bool) {
 			ports = intel.ShodanPorts
 		}
 		if len(ports) == 0 {
-			fmt.Fprintln(os.Stderr, "[!] no ports to probe — pass --ports, "+
-				"or the host has no passive footprint")
-		} else {
+			ports = DefaultPorts()
+			fmt.Fprintf(os.Stderr, "[*] no passive intel — using tome default port set (%d ports)\n",
+				len(ports))
+		}
+		if len(ports) > 0 {
 			fmt.Fprintf(os.Stderr, "[*] active phase — %d port(s), serialized, "+
 				"congestion-controlled pacing\n\n", len(ports))
 			a = runAssessment(intel, ports, *timeout, NewPacer(), !*jsonOut)
@@ -270,6 +272,23 @@ func runCatalog(args []string) {
 	// Cisco Secure Access (SSE) — block shadow AI IPs at the SSE layer.
 	sseClientID := fs.String("sse-client-id", "", "Cisco Secure Access OAuth2 client ID")
 	sseClientSecret := fs.String("sse-client-secret", "", "Cisco Secure Access OAuth2 client secret")
+
+	// Cisco Secure Endpoint (AMP) — look up device by IP, isolate if shadow AI found.
+	ampClientID := fs.String("amp-client-id", "", "Cisco Secure Endpoint API client ID")
+	ampAPIKey := fs.String("amp-api-key", "", "Cisco Secure Endpoint API key")
+	ampCloud := fs.String("amp-cloud", "nam", "Secure Endpoint cloud (nam|eu|apjc)")
+	ampIsolate := fs.Bool("amp-isolate", false, "isolate endpoints where shadow AI is found")
+
+	// Cisco Umbrella — block shadow AI server IPs/domains at the DNS layer.
+	umbrellaClientID := fs.String("umbrella-client-id", "", "Cisco Umbrella OAuth2 client ID")
+	umbrellaClientSecret := fs.String("umbrella-client-secret", "", "Cisco Umbrella OAuth2 client secret")
+
+	// Cisco ISE — trigger ANC quarantine policy on devices with shadow AI.
+	iseURL := fs.String("ise-url", "", "Cisco ISE ERS base URL (e.g. https://ise.corp:9060)")
+	iseUser := fs.String("ise-user", "", "Cisco ISE ERS username")
+	isePass := fs.String("ise-pass", "", "Cisco ISE ERS password")
+	isePolicy := fs.String("ise-policy", "shadow-ai-quarantine", "ISE ANC policy name to apply")
+
 	_ = fs.Parse(args)
 
 	if *catalystURL == "" || *catalystToken == "" {
@@ -300,6 +319,18 @@ func runCatalog(args []string) {
 	var sseClient *cisco.SecureAccessClient
 	if *sseClientID != "" && *sseClientSecret != "" {
 		sseClient = cisco.NewSecureAccessClient(*sseClientID, *sseClientSecret)
+	}
+	var ampClient *cisco.SecureEndpointClient
+	if *ampClientID != "" && *ampAPIKey != "" {
+		ampClient = cisco.NewSecureEndpointClient(*ampClientID, *ampAPIKey, *ampCloud)
+	}
+	var umbrellaClient *cisco.UmbrellaClient
+	if *umbrellaClientID != "" && *umbrellaClientSecret != "" {
+		umbrellaClient = cisco.NewUmbrellaClient(*umbrellaClientID, *umbrellaClientSecret)
+	}
+	var iseClient *cisco.ISEClient
+	if *iseURL != "" && *iseUser != "" && *isePass != "" {
+		iseClient = cisco.NewISEClient(*iseURL, *iseUser, *isePass)
 	}
 
 	// ThousandEyes — query once upfront and cache; correlate + provision after each finding.
@@ -360,8 +391,9 @@ func runCatalog(args []string) {
 			ports = intel.ShodanPorts
 		}
 		if len(ports) == 0 {
-			fmt.Fprintf(os.Stderr, "      [-] no ports to probe (no Shodan record, use --ports)\n")
-			continue
+			ports = DefaultPorts()
+			fmt.Fprintf(os.Stderr, "      [*] no passive intel — using tome default port set (%d ports)\n",
+				len(ports))
 		}
 
 		a := runAssessment(intel, ports, *timeout, NewPacer(), stderrTTY)
@@ -404,6 +436,45 @@ func runCatalog(args []string) {
 				fmt.Fprintf(os.Stderr, "      [!] secure-access: %v\n", err)
 			} else {
 				fmt.Fprintf(os.Stderr, "      [+] secure-access: %s added to blocked destination list\n", ip)
+			}
+		}
+
+		// Cisco Secure Endpoint — look up the device by management IP and optionally
+		// isolate it when shadow AI is confirmed. The API returns a connector GUID
+		// that uniquely identifies the managed endpoint; isolation requires it.
+		if ampClient != nil {
+			guid, hostname, err := ampClient.FindByIP(ip)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "      [!] secure-endpoint: %v\n", err)
+			} else if guid != "" {
+				fmt.Fprintf(os.Stderr, "      [+] secure-endpoint: device found — %s (%s)\n", hostname, guid)
+				if *ampIsolate {
+					if err := ampClient.Isolate(guid, "shadow AI detected by tiptoe: "+strings.Join(services, ", ")); err != nil {
+						fmt.Fprintf(os.Stderr, "      [!] secure-endpoint: isolate: %v\n", err)
+					} else {
+						fmt.Fprintf(os.Stderr, "      [+] secure-endpoint: endpoint isolated\n")
+					}
+				}
+			}
+		}
+
+		// Cisco Umbrella — block shadow AI server IPs at the DNS layer.
+		// Complements SSE (IP-layer) with DNS-layer enforcement.
+		if umbrellaClient != nil {
+			if err := umbrellaClient.BlockShadowAI([]string{ip}); err != nil {
+				fmt.Fprintf(os.Stderr, "      [!] umbrella: %v\n", err)
+			} else {
+				fmt.Fprintf(os.Stderr, "      [+] umbrella: %s added to DNS block list\n", ip)
+			}
+		}
+
+		// Cisco ISE — apply ANC quarantine policy to the endpoint.
+		// ISE then re-routes the device through a restricted VLAN until cleared.
+		if iseClient != nil {
+			if err := iseClient.ApplyANC(ip, *isePolicy); err != nil {
+				fmt.Fprintf(os.Stderr, "      [!] ise: %v\n", err)
+			} else {
+				fmt.Fprintf(os.Stderr, "      [+] ise: ANC policy %q applied to %s\n", *isePolicy, ip)
 			}
 		}
 
