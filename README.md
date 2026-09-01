@@ -1,6 +1,6 @@
 <h1 align="center">AISM</h1>
 
-<h4 align="center">Shadow AI/ML discovery for Cisco-managed enterprise networks.</h4>
+<h4 align="center">AI Attack Surface Management — Shadow AI/ML discovery for Cisco enterprise networks.</h4>
 
 <p align="center">
   <a href="https://github.com/sshpie/aism/releases"><img src="https://img.shields.io/github/v/release/sshpie/aism?style=flat-square" alt="release"></a>

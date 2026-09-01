@@ -50,11 +50,10 @@ func sgr(code string) string {
 // `--json` output is never polluted.
 func printBanner() {
 	fmt.Fprint(os.Stderr, sgr(ansiCyan)+`
-   _   _      _
-  | |_(_)_ __| |_ ___  ___
-  | __| | '_ \ __/ _ \/ -_)
-   \__|_| .__/\__\___/\___|
-        |_|`+sgr(ansiReset)+sgr(ansiDim)+`   v`+version+`  ·  github.com/sshpie/aism`+
+    _   ___ ___ __  __
+   /_\ |_ _/ __|  \/  |
+  / _ \ | |\__ \ |\/| |
+ /_/ \_\___|___/_|  |_|`+sgr(ansiReset)+sgr(ansiDim)+`  v`+version+
 		sgr(ansiReset)+`
 
 `+sgr(ansiBold)+`   Enterprise Shadow AI discovery`+sgr(ansiReset)+"\n")
