@@ -46,12 +46,14 @@ Catalyst Center
           +--------------------------------------------------------+
           |
           +-- VERIFIED_UNAUTH findings (Ollama, Qdrant, MLflow, ...)
+          |   labeled with Cisco AI Taxonomy IDs (OB/AITech/AISubtech)
           |
-          +-- Catalyst Center   tag device "shadow-ai-detected"
-          +-- ThousandEyes      correlate degraded app scores (score < 70)
-          |   (Meraki assurance API: app health + impacted client count)
-          +-- Cisco XDR         CTIM sighting bundle (IP + services + TE context)
-          +-- Webex             per-device alert + catalog summary
+          +-- Catalyst Center     tag device "shadow-ai-detected"
+          +-- Cisco Secure Access add IP to blocked destination list (SSE enforcement)
+          +-- ThousandEyes        correlate degraded app scores (score < 70)
+          |   provision TE agent on eligible Meraki networks
+          +-- Cisco XDR           CTIM sighting bundle (IP + services + taxonomy)
+          +-- Webex               per-device alert + catalog summary
 ```
 
 ### Catalyst Center
@@ -143,6 +145,29 @@ Example output when shadow AI and application degradation are correlated:
 
 ---
 
+### Cisco Secure Access (SSE)
+
+When shadow AI is found, tiptoe adds the server's IP to a `shadow-ai-detected` blocked
+destination list in Cisco Secure Access via the
+[Destination Lists API](https://developer.cisco.com/docs/cloud-security/)
+(`POST /policies/v2/destinationlists/{id}/destinations`).
+The list is created automatically if it doesn't exist (`bundleTypeId: 2`, `access: "block"`).
+
+This enforces network-layer containment on all managed endpoints routed through the SSE —
+no per-device config change required. The block propagates within SSE policy enforcement time.
+
+```bash
+tiptoe catalog \
+  --catalyst-url https://catalyst.corp.example.com \
+  --catalyst-token TOKEN \
+  --sse-client-id SSE_CLIENT_ID \
+  --sse-client-secret SSE_CLIENT_SECRET
+```
+
+Required OAuth2 scope: `policies.destinationLists:write`.
+
+---
+
 ## Features
 
 - Single Go binary, standard library only, Go 1.22 or later
@@ -150,6 +175,7 @@ Example output when shadow AI and application degradation are correlated:
 - **Cisco AI Taxonomy** classification — every finding labeled with OB/AITech/AISubtech IDs from Cisco's AI Taxonomy Navigator v1.0.0
 - **ThousandEyes** correlation via Meraki assurance API — app health scores + impacted client counts
 - **ThousandEyes provisioning** — activates TE agents on eligible Meraki networks when shadow AI is found (`POST /extensions/thousandEyes/networks`)
+- **Cisco Secure Access (SSE)** — blocks shadow AI server IPs in the SSE destination list (Policies API v2, `bundleTypeId: 2`, `access: "block"`); list created automatically
 - **Cisco XDR** integration — CTIM sighting bundle submission via OAuth2
 - **Cisco Webex** integration — per-device alerts and catalog summaries
 - Passive phase sends the host zero packets (Shodan host API, reverse DNS, crt.sh)

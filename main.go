@@ -99,10 +99,14 @@ catalog flags:
   --webex-token <token>   post catalog summary to Webex
   --webex-room <id>
 
-  ThousandEyes correlation (optional):
+  ThousandEyes correlation + provisioning (optional):
   --meraki-api-key <key>      Meraki Dashboard API key
   --meraki-org-id <id>        Meraki organization ID
   --meraki-network-ids <csv>  Meraki network IDs to correlate (comma-separated)
+
+  Cisco Secure Access (SSE) enforcement (optional):
+  --sse-client-id <id>        Secure Access OAuth2 client ID (scope: policies.destinationLists:write)
+  --sse-client-secret <s>     Secure Access OAuth2 client secret
 
 examples:
   tiptoe assess  10.0.0.1
@@ -263,6 +267,9 @@ func runCatalog(args []string) {
 	merakiAPIKey := fs.String("meraki-api-key", "", "Meraki Dashboard API key")
 	merakiOrgID := fs.String("meraki-org-id", "", "Meraki organization ID")
 	merakiNetworkIDs := fs.String("meraki-network-ids", "", "comma-separated Meraki network IDs")
+	// Cisco Secure Access (SSE) — block shadow AI IPs at the SSE layer.
+	sseClientID := fs.String("sse-client-id", "", "Cisco Secure Access OAuth2 client ID")
+	sseClientSecret := fs.String("sse-client-secret", "", "Cisco Secure Access OAuth2 client secret")
 	_ = fs.Parse(args)
 
 	if *catalystURL == "" || *catalystToken == "" {
@@ -289,6 +296,10 @@ func runCatalog(args []string) {
 	var webexClient *cisco.WebexClient
 	if *webexToken != "" && *webexRoom != "" {
 		webexClient = cisco.NewWebexClient(*webexToken, *webexRoom)
+	}
+	var sseClient *cisco.SecureAccessClient
+	if *sseClientID != "" && *sseClientSecret != "" {
+		sseClient = cisco.NewSecureAccessClient(*sseClientID, *sseClientSecret)
 	}
 
 	// ThousandEyes — query once upfront and cache; correlate + provision after each finding.
@@ -382,6 +393,17 @@ func runCatalog(args []string) {
 				fmt.Fprintf(os.Stderr, "      [!] catalyst tag: %v\n", err)
 			} else {
 				fmt.Fprintf(os.Stderr, "      [+] catalyst: tagged device\n")
+			}
+		}
+
+		// Cisco Secure Access — block the shadow AI server's IP in SSE.
+		// This creates/updates the "shadow-ai-detected" blocked destination list,
+		// which enforces network-layer containment for all managed endpoints.
+		if sseClient != nil {
+			if err := sseClient.BlockShadowAI([]string{ip}, strings.Join(services, "; ")); err != nil {
+				fmt.Fprintf(os.Stderr, "      [!] secure-access: %v\n", err)
+			} else {
+				fmt.Fprintf(os.Stderr, "      [+] secure-access: %s added to blocked destination list\n", ip)
 			}
 		}
 
