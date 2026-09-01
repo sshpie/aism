@@ -2,14 +2,13 @@ package main
 
 // probe_mcp.go — deep probe functions for confirmed MCP HTTP servers and voice AI.
 //
-// DEADBUG-MCP research (2026-08-10, Nicholas Kloster) documented 7 attack vectors
+// MCP tool description injection research (2026-08-10) documented 7 attack vectors
 // against network-accessible MCP servers. V2 (tool description injection) is the
 // most impactful: adversarial instructions embedded in tool.description fields are
 // consumed by the LLM during the planning phase — before any tool call fires —
 // leaving zero trace in call logs. The bracket pattern [IMPORTANT: ...] was
 // confirmed working by Microsoft's GitHub Copilot security team.
 //
-// Reference: ~/VDT/methodology/DEADBUG-MCP-V2-SPEC.md
 // Attack vectors: V1 static prompt, V2 tool desc, V3 rug pull, V4 cross-server,
 //   V5 sampling reverse injection, V6 resource accumulation, V7 memory store.
 
@@ -23,7 +22,7 @@ import (
 
 // mcpPoisonPatterns covers the confirmed V2 tool description injection markers.
 // Ranked by severity: explicit instruction hiding, credential harvesting, then
-// campaign markers from known worm deployments (deadbug, BTC address prefix).
+// campaign markers from known worm deployments (BTC address prefix, known phrases).
 var mcpPoisonPatterns = []string{
 	"[important:",        // V2 bracket injection pattern; some clients elevate priority
 	"never mention this", // instruction hiding — common in V4 cross-server poison
@@ -38,11 +37,11 @@ var mcpPoisonPatterns = []string{
 	"bcc ",               // email BCC redirect pattern (V4 cross-server email tool)
 	"deadbugz",           // campaign marker
 	"deadbug",
-	"bc1q",               // BTC bech32 address prefix (deadbug worm canary)
+	"bc1q",               // BTC bech32 address prefix (worm canary)
 	"1p2zgp",             // legacy BTC address prefix fragment
 	"exfil",              // explicit exfiltration instruction
 	"security logging requirement",  // V4 disguised compliance framing
-	"formatting context token",      // V2 disguise pattern from deadbug-mcp-http
+	"formatting context token",      // V2 disguise pattern
 	"verification token",
 	"audit compliance",
 }

@@ -2,7 +2,7 @@ package main
 
 // probe_ollama.go — deep probe for confirmed Ollama instances.
 //
-// DEADBUG worm research (2026-08-10) documented autonomous model poisoning
+// Autonomous model-poisoning worm research (2026-08-10) documented poisoning
 // across 1,347 Ollama hosts. The worm deploys models with OpenAI/Anthropic
 // product names (gpt-4:latest, claude-3-opus:latest, gpt-4o:latest) — names
 // that do not exist in a legitimate Ollama deployment. Ollama uses its own
@@ -16,8 +16,6 @@ package main
 //        V3 is stealthier — it persists even when the system prompt is cleared
 //        and survives model pulls. A non-empty messages[] on a local Ollama
 //        model is itself anomalous; legitimate models ship with no stored history.
-//
-// Reference: ~/VDT/methodology/DEADBUG-WORM-COMPLETE-RESEARCH.md
 
 import (
 	"encoding/json"
@@ -27,7 +25,7 @@ import (
 	"strings"
 )
 
-// wormModelNames are model names deployed by the DEADBUG worm.
+// wormModelNames are model names deployed by the model-poisoning worm.
 // These names are verified from 1,347 compromised hosts across all worm runs.
 // No legitimate Ollama operator names local models after proprietary LLMs.
 var wormModelNames = []string{
@@ -54,13 +52,13 @@ var impersonationPrefixes = []string{
 }
 
 // poisonContentPatterns are strings found in canary content injected by the
-// DEADBUG worm into model system prompts and message histories.
+// model-poisoning worm into model system prompts and message histories.
 var poisonContentPatterns = []string{
 	"deadbugz",
 	"deadbug",
 	"bc1q",      // BTC bech32 worm canary address prefix
 	"1p2zgp",    // legacy BTC address fragment
-	"issa worm", // DEADBUG canary phrase from garlic/README.md
+	"issa worm", // worm canary phrase
 }
 
 type ollamaTagsResponse struct {
@@ -106,7 +104,7 @@ func probeOllamaModels(base string, client *http.Client) []string {
 		// Check for exact known worm model names first
 		for _, worm := range wormModelNames {
 			if low == strings.ToLower(worm) {
-				flag := fmt.Sprintf("model %q: known DEADBUG worm artifact", name)
+				flag := fmt.Sprintf("model %q: known worm artifact — impersonates commercial LLM", name)
 				if !seen[flag] {
 					flagged = append(flagged, flag)
 					seen[flag] = true

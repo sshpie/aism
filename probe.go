@@ -230,7 +230,7 @@ func fillConfirmed(p *Probe, client *http.Client, base string, sig llmSignature,
 			name, sig.confirmPath)
 	}
 
-	// Ollama model poisoning check (DEADBUG worm research — 1,347 hosts).
+	// Ollama model poisoning check — autonomous model-poisoning worm, 1,347 hosts.
 	// Scans deployed models for worm artifacts (impersonation names, V2 system
 	// prompt injection, V3 pre-conversation message injection).
 	if sig.platform == "Ollama" {
@@ -253,7 +253,7 @@ func fillConfirmed(p *Probe, client *http.Client, base string, sig llmSignature,
 		}
 	}
 
-	// MCP tool description poisoning check (DEADBUG-MCP V2 research).
+	// MCP tool description poisoning check — V2 tool description injection.
 	// Network-accessible MCP servers expose tools/list without auth.
 	// Tool descriptions are consumed by the LLM at planning-time — injection
 	// here fires before any tool call and leaves no trace in call logs.

@@ -13,20 +13,17 @@ package main
 // carries an "mcp-session-id" header that later calls must echo.
 //
 // After detection, aism calls tools/list and scans tool descriptions for V2
-// injection patterns (DEADBUG-MCP research). Tool description injection fires at
-// LLM planning time — before any tool call — leaving zero trace in call logs.
+// injection patterns. Tool description injection fires at LLM planning time —
+// before any tool call — leaving zero trace in call logs.
 //
-// Port basis: DEADBUG-MCP v2 spec estimates "hundreds to thousands" of exposed
+// Port basis: tool injection research estimates "hundreds to thousands" of exposed
 // MCP HTTP endpoints. Common deployment ports from GitHub survey (2026-08):
 //   3000  FastMCP default
 //   8000  FastMCP / uvicorn defaults
 //   8080  Nginx proxy frontends
-//   7443  HTTPS MCP (deadbug-mcp-http uses this)
+//   7443  HTTPS MCP
 //   4000  Alternative dev port
 //   3001  Alternative React-adjacent dev port
-//
-// Reference: ~/VDT/methodology/DEADBUG-MCP-V2-SPEC.md
-//            ~/VDT/tools/deadbug-mcp-scanner.py (fingerprint source)
 
 var mcpHTTPSignatures = []llmSignature{
 

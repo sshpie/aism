@@ -388,7 +388,7 @@ AISM's detections are grounded in original research, not CVE databases. Each lay
 
 ### Ollama Model Poisoning
 
-After confirming an Ollama instance, AISM fetches the full model list and deep-inspects each model for two injection classes documented in the DEADBUG worm research (1,347 compromised hosts, 3,949 models):
+After confirming an Ollama instance, AISM fetches the full model list and deep-inspects each model for two injection classes documented in autonomous model-poisoning worm research (1,347 compromised hosts, 3,949 models):
 
 | Signal | Method | Injection class |
 |---|---|---|
@@ -403,7 +403,7 @@ Escalates to **CRITICAL** on any match.
 
 ### MCP Tool Description Poisoning
 
-After confirming a network-accessible MCP HTTP server, AISM calls `tools/list` and scans each tool's `description` field for 18 injection patterns. Tool description injection (V2 in the DEADBUG-MCP taxonomy) fires at LLM planning time — before any tool call executes — and leaves zero trace in call logs. The `[IMPORTANT: ...]` bracket pattern was confirmed effective by Microsoft's GitHub Copilot security team.
+After confirming a network-accessible MCP HTTP server, AISM calls `tools/list` and scans each tool's `description` field for 18 injection patterns. Tool description injection (V2) fires at LLM planning time — before any tool call executes — and leaves zero trace in call logs. The `[IMPORTANT: ...]` bracket pattern was confirmed effective by Microsoft's GitHub Copilot security team.
 
 Escalates to **CRITICAL** when poisoning is detected.
 
