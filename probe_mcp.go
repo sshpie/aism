@@ -52,7 +52,7 @@ const mcpToolsListBody = `{"jsonrpc":"2.0","method":"tools/list","params":{},"id
 
 // mcpInitBody is the JSON-RPC 2.0 initialize request. The session ID returned
 // in the mcp-session-id header must be echoed in subsequent calls.
-const mcpInitBody = `{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"tiptoe","version":"0.2.0"}},"id":1}`
+const mcpInitBody = `{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"tiptoe","version":"0.3.0"}},"id":1}`
 
 type mcpToolEntry struct {
 	Name        string `json:"name"`

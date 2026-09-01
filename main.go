@@ -23,7 +23,7 @@ import (
 	"github.com/sshpie/tiptoe/cisco"
 )
 
-const version = "0.2.0"
+const version = "0.3.0"
 
 // ANSI styling. Emitted only when stderr is a real terminal, so a piped or
 // redirected run stays clean.
@@ -54,13 +54,13 @@ func printBanner() {
   | |_(_)_ __| |_ ___  ___
   | __| | '_ \ __/ _ \/ -_)
    \__|_| .__/\__\___/\___|
-        |_|`+sgr(ansiReset)+sgr(ansiDim)+`   v`+version+`  ·  `+
+        |_|`+sgr(ansiReset)+sgr(ansiDim)+`   v`+version+`  ·  github.com/sshpie/tiptoe`+
 		sgr(ansiReset)+`
 
-`+sgr(ansiBold)+`   quiet, block-aware assessment for AI/LLM infrastructure`+
+`+sgr(ansiBold)+`   shadow AI discovery for Cisco enterprise networks`+
 		sgr(ansiReset)+`
-`+sgr(ansiDim)+`   the arsenal goes loud across thousands of hosts;
-   tiptoe assesses the one host that watches back.`+sgr(ansiReset)+"\n")
+`+sgr(ansiDim)+`   95+ platforms  ·  voice AI  ·  MCP poisoning detection
+   the arsenal goes loud; tiptoe walks the host that watches back.`+sgr(ansiReset)+"\n")
 }
 
 func usage() {
