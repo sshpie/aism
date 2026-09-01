@@ -291,14 +291,17 @@ func runCatalog(args []string) {
 		webexClient = cisco.NewWebexClient(*webexToken, *webexRoom)
 	}
 
-	// ThousandEyes — query once upfront and cache; correlate after each finding.
+	// ThousandEyes — query once upfront and cache; correlate + provision after each finding.
+	var te *cisco.MerakiThousandEyesClient
+	var netIDStrs []string
 	var teApps []cisco.TEApplication
+	supportedNetworkSet := map[string]bool{} // networks eligible for agent provisioning
 	if *merakiAPIKey != "" && *merakiOrgID != "" && *merakiNetworkIDs != "" {
-		netIDStrs := strings.Split(*merakiNetworkIDs, ",")
+		netIDStrs = strings.Split(*merakiNetworkIDs, ",")
 		for i := range netIDStrs {
 			netIDStrs[i] = strings.TrimSpace(netIDStrs[i])
 		}
-		te := cisco.NewMerakiThousandEyesClient(*merakiOrgID, *merakiAPIKey, netIDStrs)
+		te = cisco.NewMerakiThousandEyesClient(*merakiOrgID, *merakiAPIKey, netIDStrs)
 		fmt.Fprintf(os.Stderr, "[*] querying ThousandEyes application assurance (%d network(s))...\n",
 			len(netIDStrs))
 		var teErr error
@@ -307,6 +310,18 @@ func runCatalog(args []string) {
 			fmt.Fprintf(os.Stderr, "[!] thousandeyes: %v\n", teErr)
 		} else {
 			fmt.Fprintf(os.Stderr, "[+] ThousandEyes: %d application(s) loaded\n", len(teApps))
+		}
+		// Pre-fetch networks eligible for agent activation (agentInstalled=false).
+		notInstalled := false
+		supported, supErr := te.SupportedNetworks(&notInstalled)
+		if supErr != nil {
+			fmt.Fprintf(os.Stderr, "[!] thousandeyes: supported networks: %v\n", supErr)
+		} else {
+			for _, id := range supported {
+				supportedNetworkSet[id] = true
+			}
+			fmt.Fprintf(os.Stderr, "[+] ThousandEyes: %d network(s) eligible for agent activation\n",
+				len(supported))
 		}
 	}
 
@@ -347,7 +362,18 @@ func runCatalog(args []string) {
 
 		devicesWithFindings++
 		flaggedIPs = append(flaggedIPs, ip)
-		fmt.Fprintf(os.Stderr, "      [!] shadow AI/ML: %s\n", strings.Join(services, ", "))
+
+		// Cisco AI Taxonomy classification — label each finding with the
+		// matching Objective/Technique/Subtechnique from Cisco's AI Taxonomy Navigator.
+		svcNames := unauthServiceNames(a)
+		taxEntries := cisco.ClassifyAll(svcNames)
+		taxLabel := cisco.TaxonomyLabel(taxEntries)
+		if taxLabel != "" {
+			fmt.Fprintf(os.Stderr, "      [!] shadow AI/ML: %s\n      [*] Cisco AI Taxonomy: %s\n",
+				strings.Join(services, ", "), taxLabel)
+		} else {
+			fmt.Fprintf(os.Stderr, "      [!] shadow AI/ML: %s\n", strings.Join(services, ", "))
+		}
 
 		// Tag the device in Catalyst Center.
 		if dev.ID != "" {
@@ -371,6 +397,25 @@ func runCatalog(args []string) {
 				services = append(services,
 					fmt.Sprintf("ThousandEyes degradation: %s",
 						strings.ReplaceAll(strings.TrimRight(degraded, "\n"), "\n", "; ")))
+			}
+		}
+
+		// ThousandEyes provisioning — if any configured network is eligible for
+		// agent activation (not yet installed), activate it now that shadow AI has
+		// been confirmed on a device in the org.
+		if te != nil && len(supportedNetworkSet) > 0 {
+			for _, netID := range netIDStrs {
+				if supportedNetworkSet[netID] {
+					cfg, provErr := te.ProvisionNetwork(netID, true)
+					if provErr != nil {
+						fmt.Fprintf(os.Stderr, "      [!] thousandeyes: provision %s: %v\n", netID, provErr)
+					} else {
+						fmt.Fprintf(os.Stderr, "      [+] thousandeyes: agent activated on network %s\n",
+							cfg.NetworkID)
+						// Mark as installed so we don't re-provision on subsequent findings.
+						delete(supportedNetworkSet, netID)
+					}
+				}
 			}
 		}
 
@@ -422,6 +467,22 @@ func unauthServices(a Assessment) []string {
 				svc = "unknown"
 			}
 			out = append(out, fmt.Sprintf("%s :%d [%s]", svc, p.Port, p.State))
+		}
+	}
+	return out
+}
+
+// unauthServiceNames returns raw service names (e.g. "ollama", "qdrant") for all
+// VERIFIED_UNAUTH probes — used for Cisco AI Taxonomy classification.
+func unauthServiceNames(a Assessment) []string {
+	var out []string
+	for _, p := range a.Probes {
+		if p.State == StateUnauth {
+			svc := p.Service
+			if svc == "" {
+				svc = "unknown"
+			}
+			out = append(out, svc)
 		}
 	}
 	return out

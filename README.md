@@ -91,11 +91,16 @@ tiptoe catalog \
 
 ### ThousandEyes (via Meraki Assurance API)
 
-When shadow AI is found on a device, tiptoe queries the Meraki ThousandEyes assurance endpoint
-(`GET /api/v1/organizations/{orgId}/assurance/thousandEyes/applications`) for the configured
-networks and reports any applications with a health score below 70. This correlates an unauthorized
-inference server on a managed device with measurable application degradation affecting real users —
-turning a theoretical finding into a quantified business impact.
+When shadow AI is found on a device, tiptoe:
+
+1. **Correlates** — queries `GET /api/v1/organizations/{orgId}/assurance/thousandEyes/applications`
+   and reports any applications with a health score below 70, turning a theoretical finding into
+   a quantified business impact (impacted client count, score delta, active alerts).
+
+2. **Provisions** — calls `GET /organizations/{orgId}/extensions/thousandEyes/networks/supported`
+   to identify which Meraki networks are eligible for ThousandEyes agent activation, then
+   provisions an agent (`POST /organizations/{orgId}/extensions/thousandEyes/networks`) on each
+   eligible network. Shadow AI found = monitoring activated immediately, in the same run.
 
 ```bash
 tiptoe catalog \
@@ -108,11 +113,29 @@ tiptoe catalog \
   --webex-room ROOM_ID
 ```
 
+### Cisco AI Taxonomy
+
+Every verified finding is classified against the
+[Cisco AI Taxonomy Navigator v1.0.0](https://learn-cloudsecurity.cisco.com/ai-security-framework)
+and annotated with the matching Objective/Technique/Subtechnique ID.
+
+| Service detected | Taxonomy mapping |
+|---|---|
+| Ollama, vLLM, LiteLLM | `OB-018/AISubtech-18.2.2` — Dedicated Malicious Server |
+| Qdrant, Chroma, Weaviate | `OB-018/AISubtech-18.2.1` — Abuse of APIs for Mass Automation |
+| MLflow, BentoML | `OB-018/AITech-18.1` — Fraudulent Use |
+| LangFlow, Flowise, Dify | `OB-001/AITech-1.2` — Indirect Prompt Injection |
+| MCP servers | `OB-001/AITech-1.2` + `OB-018/AISubtech-18.2.1` |
+
+Taxonomy labels appear in the terminal output, the Webex alert, and the XDR CTIM sighting.
+
 Example output when shadow AI and application degradation are correlated:
 
 ```
 [!] shadow AI/ML: ollama :11434 [VERIFIED_UNAUTH], qdrant :6333 [VERIFIED_UNAUTH]
+[*] Cisco AI Taxonomy: [OB-018/AISubtech-18.2.2, OB-018/AISubtech-18.2.1]
 [+] catalyst: tagged device
+[+] thousandeyes: agent activated on network N_abc123
 [!] thousandeyes: degraded apps on same network:
       Microsoft 365 (score 42, -18) — 37 client(s) impacted; alerts: High packet loss to O365 endpoints
       Zoom (score 61, -9) — 14 client(s) impacted
@@ -124,7 +147,9 @@ Example output when shadow AI and application degradation are correlated:
 
 - Single Go binary, standard library only, Go 1.22 or later
 - **Cisco Catalyst Center** integration — pull device inventory, push shadow-AI tags
+- **Cisco AI Taxonomy** classification — every finding labeled with OB/AITech/AISubtech IDs from Cisco's AI Taxonomy Navigator v1.0.0
 - **ThousandEyes** correlation via Meraki assurance API — app health scores + impacted client counts
+- **ThousandEyes provisioning** — activates TE agents on eligible Meraki networks when shadow AI is found (`POST /extensions/thousandEyes/networks`)
 - **Cisco XDR** integration — CTIM sighting bundle submission via OAuth2
 - **Cisco Webex** integration — per-device alerts and catalog summaries
 - Passive phase sends the host zero packets (Shodan host API, reverse DNS, crt.sh)

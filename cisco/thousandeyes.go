@@ -1,6 +1,7 @@
 package cisco
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -180,6 +181,150 @@ func (c *MerakiThousandEyesClient) Applications(timespanSeconds float64) ([]TEAp
 		}
 	}
 	return out, nil
+}
+
+// --- Provisioning (extensions API) ---
+// These endpoints activate ThousandEyes agents on Meraki-managed networks.
+// Auth: same X-Cisco-Meraki-API-Key used for the assurance API.
+// Scope required: dashboard:general:config:write (POST/PUT/DELETE).
+//                 dashboard:general:config:read  (GET).
+
+const merakiBase = "https://api.meraki.com/api/v1"
+
+// TENetworkConfig represents a ThousandEyes agent configuration for a Meraki network.
+type TENetworkConfig struct {
+	NetworkID   string   `json:"networkId"`
+	NetworkName string   `json:"networkName,omitempty"`
+	Enabled     bool     `json:"enabled"`
+	Tests       []TETest `json:"tests,omitempty"`
+}
+
+// TETest is a ThousandEyes test attached to a network TE agent.
+type TETest struct {
+	TestID   string `json:"testId,omitempty"`
+	TestName string `json:"testName,omitempty"`
+	Network  struct {
+		ID string `json:"id"`
+	} `json:"network"`
+}
+
+// SupportedNetworks lists Meraki network IDs that are eligible for ThousandEyes
+// agent activation under the configured organization.
+// GET /organizations/{orgId}/extensions/thousandEyes/networks/supported
+// agentInstalled: nil = all eligible; true = already has agent; false = eligible but no agent yet.
+func (c *MerakiThousandEyesClient) SupportedNetworks(agentInstalled *bool) ([]string, error) {
+	endpoint := fmt.Sprintf("%s/organizations/%s/extensions/thousandEyes/networks/supported",
+		merakiBase, url.PathEscape(c.OrgID))
+
+	params := url.Values{}
+	params.Set("perPage", "500")
+	if agentInstalled != nil {
+		if *agentInstalled {
+			params.Set("agentInstalled", "true")
+		} else {
+			params.Set("agentInstalled", "false")
+		}
+	}
+
+	req, err := http.NewRequest("GET", endpoint+"?"+params.Encode(), nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("X-Cisco-Meraki-API-Key", c.APIKey)
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("thousandeyes: supported: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("thousandeyes: supported: HTTP %d", resp.StatusCode)
+	}
+
+	// Response is an array of network objects with at least a networkId field.
+	var raw []struct {
+		NetworkID string `json:"networkId"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&raw); err != nil {
+		return nil, fmt.Errorf("thousandeyes: supported: decode: %w", err)
+	}
+
+	ids := make([]string, 0, len(raw))
+	for _, n := range raw {
+		ids = append(ids, n.NetworkID)
+	}
+	return ids, nil
+}
+
+// ProvisionNetwork activates a ThousandEyes agent on the given Meraki network.
+// This is a write operation — requires dashboard:general:config:write scope.
+// POST /organizations/{orgId}/extensions/thousandEyes/networks
+// Returns the created config on success.
+func (c *MerakiThousandEyesClient) ProvisionNetwork(networkID string, enabled bool) (*TENetworkConfig, error) {
+	endpoint := fmt.Sprintf("%s/organizations/%s/extensions/thousandEyes/networks",
+		merakiBase, url.PathEscape(c.OrgID))
+
+	body, err := json.Marshal(map[string]interface{}{
+		"networkId": networkID,
+		"enabled":   enabled,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", endpoint, bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("X-Cisco-Meraki-API-Key", c.APIKey)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("thousandeyes: provision: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 && resp.StatusCode != 201 {
+		return nil, fmt.Errorf("thousandeyes: provision: HTTP %d", resp.StatusCode)
+	}
+
+	var cfg TENetworkConfig
+	if err := json.NewDecoder(resp.Body).Decode(&cfg); err != nil {
+		return nil, fmt.Errorf("thousandeyes: provision: decode: %w", err)
+	}
+	return &cfg, nil
+}
+
+// ListNetworkConfigs returns all ThousandEyes network agent configurations
+// currently active under the organization.
+// GET /organizations/{orgId}/extensions/thousandEyes/networks
+func (c *MerakiThousandEyesClient) ListNetworkConfigs() ([]TENetworkConfig, error) {
+	endpoint := fmt.Sprintf("%s/organizations/%s/extensions/thousandEyes/networks",
+		merakiBase, url.PathEscape(c.OrgID))
+
+	req, err := http.NewRequest("GET", endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("X-Cisco-Meraki-API-Key", c.APIKey)
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("thousandeyes: list configs: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("thousandeyes: list configs: HTTP %d", resp.StatusCode)
+	}
+
+	var cfgs []TENetworkConfig
+	if err := json.NewDecoder(resp.Body).Decode(&cfgs); err != nil {
+		return nil, fmt.Errorf("thousandeyes: list configs: decode: %w", err)
+	}
+	return cfgs, nil
 }
 
 // DegradedSummary returns a human-readable summary of all applications with
