@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// canaryPorts are mundane, near-always-listening ports. tiptoe probes one of
+// canaryPorts are mundane, near-always-listening ports. aism probes one of
 // these first when it can: a clean, fast service gives the pacer an honest
 // baseline RTT to measure every later probe against. Seeding the baseline on a
 // slow application port would bias the whole suspicion calculation.

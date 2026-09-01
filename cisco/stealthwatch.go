@@ -3,7 +3,7 @@ package cisco
 // StealthwatchClient integrates with Cisco Secure Network Analytics (SNA),
 // formerly known as Stealthwatch Enterprise.
 //
-// When tiptoe detects a shadow AI service on a host, SNA can confirm whether
+// When aism detects a shadow AI service on a host, SNA can confirm whether
 // that service is actively being used: flow queries show who is connecting to
 // it and how much traffic has passed. Security event queries show whether SNA
 // has already flagged anomalous behavior from that host.

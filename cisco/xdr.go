@@ -75,7 +75,7 @@ func (c *XDRClient) authenticate() error {
 	return nil
 }
 
-// Sighting is one tiptoe finding to be submitted to Cisco XDR as a CTIM sighting.
+// Sighting is one aism finding to be submitted to Cisco XDR as a CTIM sighting.
 type Sighting struct {
 	IP       string   // target IP address
 	Services []string // human-readable service strings, e.g. "ollama :11434 VERIFIED_UNAUTH"
@@ -159,10 +159,10 @@ func (c *XDRClient) buildBundle(sightings []Sighting) ctimBundle {
 		ss = append(ss, ctimSighting{
 			Type:          "sighting",
 			SchemaVersion: "1.0.22",
-			Source:        "tiptoe",
+			Source:        "aism",
 			Title:         fmt.Sprintf("Shadow AI/ML services on %s", s.IP),
 			Description: fmt.Sprintf(
-				"tiptoe detected unauthenticated AI/ML services: %s",
+				"aism detected unauthenticated AI/ML services: %s",
 				strings.Join(s.Services, "; ")),
 			Confidence:  "High",
 			Count:       1,
@@ -172,7 +172,7 @@ func (c *XDRClient) buildBundle(sightings []Sighting) ctimBundle {
 	}
 	return ctimBundle{
 		Type:      "bundle",
-		Source:    "tiptoe",
+		Source:    "aism",
 		Sightings: ss,
 	}
 }

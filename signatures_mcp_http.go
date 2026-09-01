@@ -12,7 +12,7 @@ package main
 // containing "protocolVersion" if the server is MCP-compliant. The response also
 // carries an "mcp-session-id" header that later calls must echo.
 //
-// After detection, tiptoe calls tools/list and scans tool descriptions for V2
+// After detection, aism calls tools/list and scans tool descriptions for V2
 // injection patterns (DEADBUG-MCP research). Tool description injection fires at
 // LLM planning time — before any tool call — leaving zero trace in call logs.
 //

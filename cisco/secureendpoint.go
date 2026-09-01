@@ -1,7 +1,7 @@
 package cisco
 
 // SecureEndpoint integrates with the Cisco Secure Endpoint (AMP) API v3.
-// When tiptoe finds shadow AI on a managed device it can:
+// When aism finds shadow AI on a managed device it can:
 //   - Look up the Secure Endpoint connector installed on that device by IP
 //   - Optionally trigger endpoint isolation (requires --amp-isolate flag)
 //

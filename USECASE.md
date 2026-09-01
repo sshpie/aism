@@ -22,14 +22,14 @@ Traditional port scanners applied to a single monitored host generate a recogniz
 
 ## Solution
 
-tiptoe is a quiet, congestion-controlled single-host assessor built specifically for monitored targets. It integrates with Cisco Catalyst Center to pull the managed device inventory, assesses each device serially with a TCP Vegas-style pacer that stays below IPS detection thresholds, and reports findings back to the Cisco ecosystem.
+aism is a quiet, congestion-controlled single-host assessor built specifically for monitored targets. It integrates with Cisco Catalyst Center to pull the managed device inventory, assesses each device serially with a TCP Vegas-style pacer that stays below IPS detection thresholds, and reports findings back to the Cisco ecosystem.
 
-**Catalog mode** (`tiptoe catalog`) connects to Catalyst Center, fetches all managed devices, runs a quiet assessment on each management IP, and:
+**Catalog mode** (`aism catalog`) connects to Catalyst Center, fetches all managed devices, runs a quiet assessment on each management IP, and:
 - Tags devices in Catalyst Center where shadow AI/ML services are found
 - Submits CTIM sighting bundles to Cisco XDR for incident correlation
 - Posts a room summary to Cisco Webex
 
-**Single-host mode** (`tiptoe assess`) targets one host with optional XDR and Webex output.
+**Single-host mode** (`aism assess`) targets one host with optional XDR and Webex output.
 
 ## How It Works
 
@@ -37,7 +37,7 @@ tiptoe is a quiet, congestion-controlled single-host assessor built specifically
 Catalyst Center inventory
         |
         v
- tiptoe catalog
+ aism catalog
         |
         +-- per device: passive intel (Shodan, DNS, CT logs) -- zero packets
         |
@@ -57,7 +57,7 @@ Catalyst Center inventory
 ## Installation
 
 ```bash
-go install github.com/sshpie/tiptoe@latest
+go install github.com/sshpie/aism@latest
 ```
 
 Requires Go 1.22 or later. Standard library only — no external dependencies.
@@ -66,14 +66,14 @@ Requires Go 1.22 or later. Standard library only — no external dependencies.
 
 ```bash
 # Scan all Catalyst Center managed devices, tag findings, notify Webex
-tiptoe catalog \
+aism catalog \
   --catalyst-url https://catalyst.corp.example.com \
   --catalyst-token YOUR_TOKEN \
   --webex-token BOT_TOKEN \
   --webex-room ROOM_ID
 
 # Include Cisco XDR sighting submission
-tiptoe catalog \
+aism catalog \
   --catalyst-url https://catalyst.corp.example.com \
   --catalyst-token YOUR_TOKEN \
   --xdr-client-id CLIENT_ID \
@@ -82,12 +82,12 @@ tiptoe catalog \
   --webex-room ROOM_ID
 
 # Single-host assessment with XDR output
-tiptoe assess 10.0.0.1 \
+aism assess 10.0.0.1 \
   --xdr-client-id CLIENT_ID \
   --xdr-client-secret CLIENT_SECRET
 ```
 
 ## Links
 
-- GitHub: https://github.com/sshpie/tiptoe
-- Cisco DevNet Code Exchange: https://developer.cisco.com/codeexchange/github/repo/sshpie/tiptoe
+- GitHub: https://github.com/sshpie/aism
+- Cisco DevNet Code Exchange: https://developer.cisco.com/codeexchange/github/repo/sshpie/aism

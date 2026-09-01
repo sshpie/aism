@@ -1,7 +1,7 @@
 package cisco
 
 // SecureAccess integrates with the Cisco Secure Access (SSE) Destination Lists API.
-// When tiptoe finds shadow AI on a managed device it adds the server's IP to a
+// When aism finds shadow AI on a managed device it adds the server's IP to a
 // blocked destination list — SSE then enforces the block on all managed endpoints
 // routed through the SSE without any per-device configuration change.
 //

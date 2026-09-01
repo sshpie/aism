@@ -52,7 +52,7 @@ const mcpToolsListBody = `{"jsonrpc":"2.0","method":"tools/list","params":{},"id
 
 // mcpInitBody is the JSON-RPC 2.0 initialize request. The session ID returned
 // in the mcp-session-id header must be echoed in subsequent calls.
-const mcpInitBody = `{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"tiptoe","version":"0.3.0"}},"id":1}`
+const mcpInitBody = `{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"aism","version":"0.3.0"}},"id":1}`
 
 type mcpToolEntry struct {
 	Name        string `json:"name"`
@@ -84,7 +84,7 @@ func probeMCPToolPoisoning(base string, client *http.Client) []string {
 		return nil
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "tiptoe/"+version)
+	req.Header.Set("User-Agent", "aism/"+version)
 	if sessionID != "" {
 		req.Header.Set("mcp-session-id", sessionID)
 	}
@@ -122,7 +122,7 @@ func mcpInitSession(base string, client *http.Client) string {
 		return ""
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "tiptoe/"+version)
+	req.Header.Set("User-Agent", "aism/"+version)
 	resp, err := client.Do(req)
 	if err != nil {
 		return ""
@@ -146,7 +146,7 @@ func probeVoiceAICORS(client *http.Client, base string) bool {
 		return false
 	}
 	req.Header.Set("Origin", "https://attacker.example.com")
-	req.Header.Set("User-Agent", "tiptoe/"+version)
+	req.Header.Set("User-Agent", "aism/"+version)
 	resp, err := client.Do(req)
 	if err != nil {
 		return false

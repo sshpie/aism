@@ -1,7 +1,7 @@
 package cisco
 
 // Umbrella integrates with the Cisco Umbrella Policies API v2.
-// When tiptoe finds shadow AI, it adds the server's IP to a blocked
+// When aism finds shadow AI, it adds the server's IP to a blocked
 // destination list in Umbrella — enforcing DNS-layer blocking on all
 // endpoints that resolve DNS through the Umbrella resolver.
 //
@@ -196,7 +196,7 @@ func (c *UmbrellaClient) AddDestinations(listID int, ips []string) error {
 	}
 	dests := make([]dest, len(ips))
 	for i, ip := range ips {
-		dests[i] = dest{Destination: ip, Type: "ip", Comment: "shadow AI detected by tiptoe"}
+		dests[i] = dest{Destination: ip, Type: "ip", Comment: "shadow AI detected by aism"}
 	}
 	body, err := json.Marshal(dests)
 	if err != nil {

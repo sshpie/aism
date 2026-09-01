@@ -3,7 +3,7 @@ package main
 import "math"
 
 // suspicion is a phi-accrual-style detector for how the target host is
-// answering tiptoe. It is adapted from the distributed-systems failure
+// answering aism. It is adapted from the distributed-systems failure
 // detector of Hayashibara et al. (2004) — the same detector Cassandra and Akka
 // use to decide a cluster node has gone down.
 //
@@ -22,7 +22,7 @@ import "math"
 //
 // Because the distribution is re-estimated every probe, the detector adapts on
 // its own: a jittery host earns a wide tolerance, a steady host a tight one.
-// tiptoe reads a rising phi as the host turning hostile and slows down before
+// aism reads a rising phi as the host turning hostile and slows down before
 // any hard cutoff is reached.
 type suspicion struct {
 	window []float64 // recent RTT samples, in milliseconds

@@ -1,7 +1,7 @@
 package cisco
 
 // ISE integrates with Cisco Identity Services Engine (ISE) via the ERS API.
-// When tiptoe finds shadow AI on a managed device, it applies an ANC
+// When aism finds shadow AI on a managed device, it applies an ANC
 // (Adaptive Network Control) quarantine policy to the endpoint by IP.
 //
 // ISE then re-routes the device through a restricted quarantine VLAN and

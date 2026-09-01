@@ -1,7 +1,7 @@
 package cisco
 
 // NSOClient integrates with Cisco Network Services Orchestrator (NSO) via RESTCONF.
-// When tiptoe finds shadow AI on a device, NSO can push an ACL rule to block
+// When aism finds shadow AI on a device, NSO can push an ACL rule to block
 // traffic to the shadow AI server's IP at the network layer — enforced on the
 // managed device's interface, not just at the SSE or DNS layer.
 //
@@ -110,7 +110,7 @@ func (c *NSOClient) ListDevices() ([]NSODevice, error) {
 // BlockIPViaACL pushes an extended ACL deny rule for the given destination IP
 // to the named device through NSO.
 //
-// The ACL named aclName must already exist on the device; tiptoe adds a new
+// The ACL named aclName must already exist on the device; aism adds a new
 // deny-any rule at the given sequence number. A sequence of 0 appends to the
 // end of the ACL (NSO auto-assigns the sequence).
 //

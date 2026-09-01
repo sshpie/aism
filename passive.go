@@ -57,7 +57,7 @@ func httpGetJSON(url string, timeout time.Duration, into any) bool {
 	if err != nil {
 		return false
 	}
-	req.Header.Set("User-Agent", "tiptoe/"+version)
+	req.Header.Set("User-Agent", "aism/"+version)
 	resp, err := client.Do(req)
 	if err != nil {
 		return false
@@ -70,7 +70,7 @@ func httpGetJSON(url string, timeout time.Duration, into any) bool {
 }
 
 // shodanHost reads Shodan's cached record for the IP. Shodan already crawled
-// the host; tiptoe reads that memory instead of re-crawling.
+// the host; aism reads that memory instead of re-crawling.
 func shodanHost(in *Intel) {
 	home, err := os.UserHomeDir()
 	if err != nil {

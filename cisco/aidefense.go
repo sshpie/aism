@@ -1,7 +1,7 @@
 package cisco
 
 // AIDefenseClient integrates with the Cisco AI Defense Management API.
-// When tiptoe detects an MCP server or other AI/ML service on the network,
+// When aism detects an MCP server or other AI/ML service on the network,
 // it can register that server with AI Defense for supply chain security
 // scanning — checking for prompt injection vulnerabilities, exposed tools,
 // and unsafe dependencies.
@@ -12,7 +12,7 @@ package cisco
 //       (Administration > API Keys in the AI Defense UI; separate from the Inspection API key)
 //
 // Typical flow:
-//   1. tiptoe detects an MCP server at http://10.0.0.5:8080
+//   1. aism detects an MCP server at http://10.0.0.5:8080
 //   2. RegisterMCPServer → AI Defense queues a supply chain scan
 //   3. (after scan completes) ListMCPServerThreats → returns severity-filtered findings
 //   4. ListRuntimeEvents(MCP_SERVER, Block) → returns any blocked prompt injection events
@@ -64,7 +64,7 @@ func (c *AIDefenseClient) do(method, path string, body any) (*http.Response, err
 	return c.client.Do(req)
 }
 
-// MCPConnectionType maps tiptoe's detected transport to the AI Defense enum.
+// MCPConnectionType maps aism's detected transport to the AI Defense enum.
 type MCPConnectionType string
 
 const (
@@ -86,7 +86,7 @@ type mcpRegisterRequest struct {
 // supply chain scanning. Returns the AI Defense serverId on success.
 //
 // name: human label (e.g. "shadow-mcp-10.0.0.5-8080")
-// url:  full URL tiptoe reached the server on
+// url:  full URL aism reached the server on
 // connType: transport detected; use MCPConnectionSSE for HTTP-based servers
 // connectorID: leave empty for internet-reachable servers; set to the
 //
@@ -98,7 +98,7 @@ func (c *AIDefenseClient) RegisterMCPServer(name, url string, connType MCPConnec
 	req := mcpRegisterRequest{
 		Name:           name,
 		URL:            url,
-		Description:    "Shadow AI MCP server detected by tiptoe",
+		Description:    "Shadow AI MCP server detected by aism",
 		ConnectionType: connType,
 		ScanEnabled:    true,
 		ConnectorID:    connectorID,
@@ -275,7 +275,7 @@ func (c *AIDefenseClient) GetEventConversation(eventID string) ([]map[string]any
 
 // ListRuntimeEvents returns recent AI Defense runtime events for the given
 // resource type, filtered to the given action. Used to correlate prompt
-// injection or data leakage events on detected AI services with tiptoe findings.
+// injection or data leakage events on detected AI services with aism findings.
 //
 // resourceType: "MCP_SERVER" | "LLM"
 // action:       "Block" | "Allow" | "" (all)

@@ -15,7 +15,7 @@ import (
 // probePort runs one quiet active probe of one port. It opens a single TCP
 // connection — the connect time is the RTT signal the pacer reads — and then,
 // if the port is open, runs a short identification step biased toward AI/LLM
-// services. Every request is read-only; tiptoe never sends a credential.
+// services. Every request is read-only; aism never sends a credential.
 func probePort(ip, hostname string, port int, timeout time.Duration) Probe {
 	p := Probe{Port: port, Provenance: ProvActive}
 
@@ -79,7 +79,7 @@ type llmSignature struct {
 	noAuth        bool   // platform ships no auth, so a confirmed match is itself an exposure
 }
 
-// signatures is tiptoe's LLM-infrastructure knowledge, kept as data. Every row
+// signatures is aism's LLM-infrastructure knowledge, kept as data. Every row
 // was checked against how the platform actually answers; an unverified
 // platform is left out rather than guessed. Table order is match priority:
 // specific platforms before the generic OpenAI-compatible catch-all.
@@ -278,7 +278,7 @@ func httpGet(client *http.Client, url string) (int, string, string, bool) {
 	if err != nil {
 		return 0, "", "", false
 	}
-	req.Header.Set("User-Agent", "tiptoe/"+version)
+	req.Header.Set("User-Agent", "aism/"+version)
 	resp, err := client.Do(req)
 	if err != nil {
 		return 0, "", "", false
@@ -299,7 +299,7 @@ func httpPost(client *http.Client, url, body string) (int, string, string, bool)
 	if err != nil {
 		return 0, "", "", false
 	}
-	req.Header.Set("User-Agent", "tiptoe/"+version)
+	req.Header.Set("User-Agent", "aism/"+version)
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := client.Do(req)
 	if err != nil {

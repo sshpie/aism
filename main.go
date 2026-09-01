@@ -1,4 +1,4 @@
-// Command tiptoe is a quiet, block-aware assessor for AI/LLM infrastructure.
+// Command aism is a quiet, block-aware assessor for AI/LLM infrastructure.
 //
 // The  arsenal is built for population sweeps — aimap, menlohunt and the
 // rest spread their load over thousands of hosts, so no single host ever sees
@@ -6,7 +6,7 @@
 // loud: the host's IPS flags the scan and every tool after it runs blind
 // against a now-filtered target.
 //
-// tiptoe is the quiet counterpart. It is passive-first (the recon phase sends
+// aism is the quiet counterpart. It is passive-first (the recon phase sends
 // the target zero packets), it probes serially and paced by a TCP-style
 // congestion controller, and it watches its own probe outcomes so it can tell
 // when it has been filtered — and stop, instead of hammering a dark host.
@@ -20,7 +20,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sshpie/tiptoe/cisco"
+	"github.com/sshpie/aism/cisco"
 )
 
 const version = "0.3.0"
@@ -46,7 +46,7 @@ func sgr(code string) string {
 	return ""
 }
 
-// printBanner writes the tiptoe banner to stderr — stdout is left clean so
+// printBanner writes the aism banner to stderr — stdout is left clean so
 // `--json` output is never polluted.
 func printBanner() {
 	fmt.Fprint(os.Stderr, sgr(ansiCyan)+`
@@ -54,7 +54,7 @@ func printBanner() {
   | |_(_)_ __| |_ ___  ___
   | __| | '_ \ __/ _ \/ -_)
    \__|_| .__/\__\___/\___|
-        |_|`+sgr(ansiReset)+sgr(ansiDim)+`   v`+version+`  ·  github.com/sshpie/tiptoe`+
+        |_|`+sgr(ansiReset)+sgr(ansiDim)+`   v`+version+`  ·  github.com/sshpie/aism`+
 		sgr(ansiReset)+`
 
 `+sgr(ansiBold)+`   Enterprise Shadow AI discovery`+sgr(ansiReset)+"\n")
@@ -64,10 +64,10 @@ func usage() {
 	printBanner()
 	fmt.Fprint(os.Stderr, `
 usage:
-  tiptoe assess  <host>   passive intel, then congestion-controlled active probing
-  tiptoe passive <host>   passive intel only, zero packets to the target
-  tiptoe catalog          pull Catalyst Center inventory, assess each managed device
-  tiptoe version          print the version and exit
+  aism assess  <host>   passive intel, then congestion-controlled active probing
+  aism passive <host>   passive intel only, zero packets to the target
+  aism catalog          pull Catalyst Center inventory, assess each managed device
+  aism version          print the version and exit
 
 assess flags:
   --ports <csv>           ports to probe (default: ports from passive intel)
@@ -106,12 +106,12 @@ catalog flags:
   --sse-client-secret <s>     Secure Access OAuth2 client secret
 
 examples:
-  tiptoe assess  10.0.0.1
-  tiptoe assess  10.0.0.1 --ports 8000,11434 --json
-  tiptoe assess  10.0.0.1 --xdr-client-id ID --xdr-client-secret SECRET
-  tiptoe passive lab.example.edu
-  tiptoe catalog --catalyst-url https://catalyst.corp.example.com --catalyst-token TOKEN
-  tiptoe catalog --catalyst-url https://catalyst/ --catalyst-token TOKEN \
+  aism assess  10.0.0.1
+  aism assess  10.0.0.1 --ports 8000,11434 --json
+  aism assess  10.0.0.1 --xdr-client-id ID --xdr-client-secret SECRET
+  aism passive lab.example.edu
+  aism catalog --catalyst-url https://catalyst.corp.example.com --catalyst-token TOKEN
+  aism catalog --catalyst-url https://catalyst/ --catalyst-token TOKEN \
                  --webex-token BOT_TOKEN --webex-room ROOM_ID
 
 `)
@@ -130,11 +130,11 @@ func main() {
 	case "catalog":
 		runCatalog(os.Args[2:])
 	case "version", "-v", "--version":
-		fmt.Printf("tiptoe %s\n", version)
+		fmt.Printf("aism %s\n", version)
 	case "help", "-h", "--help":
 		usage()
 	default:
-		fmt.Fprintf(os.Stderr, "tiptoe: unknown command %q\n\n", os.Args[1])
+		fmt.Fprintf(os.Stderr, "aism: unknown command %q\n\n", os.Args[1])
 		usage()
 		os.Exit(2)
 	}
@@ -161,12 +161,12 @@ func runCmd(args []string, passiveOnly bool) {
 	webexRoom := fs.String("webex-room", "", "Webex room ID")
 
 	// The stdlib flag package stops parsing at the first non-flag argument,
-	// so `tiptoe assess host --json` would silently leave --json unparsed.
+	// so `aism assess host --json` would silently leave --json unparsed.
 	// Parse once, lift out the host, then parse whatever flags followed it.
 	_ = fs.Parse(args)
 	rest := fs.Args()
 	if len(rest) == 0 {
-		fmt.Fprintf(os.Stderr, "tiptoe %s: need a host\n", name)
+		fmt.Fprintf(os.Stderr, "aism %s: need a host\n", name)
 		os.Exit(2)
 	}
 	host := rest[0]
@@ -248,7 +248,7 @@ func runCmd(args []string, passiveOnly bool) {
 }
 
 // runCatalog fetches all managed devices from Cisco Catalyst Center and runs
-// a quiet tiptoe assessment on each one, serially. Devices where AI/ML services
+// a quiet aism assessment on each one, serially. Devices where AI/ML services
 // are found are tagged in Catalyst Center and optionally reported to Cisco XDR
 // and a Webex room.
 func runCatalog(args []string) {
@@ -305,7 +305,7 @@ func runCatalog(args []string) {
 	_ = fs.Parse(args)
 
 	if *catalystURL == "" || *catalystToken == "" {
-		fmt.Fprintln(os.Stderr, "tiptoe catalog: --catalyst-url and --catalyst-token are required")
+		fmt.Fprintln(os.Stderr, "aism catalog: --catalyst-url and --catalyst-token are required")
 		os.Exit(2)
 	}
 
@@ -451,7 +451,7 @@ func runCatalog(args []string) {
 
 		// Tag the device in Catalyst Center.
 		if dev.ID != "" {
-			tagDesc := fmt.Sprintf("tiptoe found: %s", strings.Join(services, "; "))
+			tagDesc := fmt.Sprintf("aism found: %s", strings.Join(services, "; "))
 			if err := cc.TagDevice(dev.ID, "shadow-ai-detected", tagDesc); err != nil {
 				fmt.Fprintf(os.Stderr, "      [!] catalyst tag: %v\n", err)
 			} else {
@@ -480,7 +480,7 @@ func runCatalog(args []string) {
 			} else if guid != "" {
 				fmt.Fprintf(os.Stderr, "      [+] secure-endpoint: device found — %s (%s)\n", hostname, guid)
 				if *ampIsolate {
-					if err := ampClient.Isolate(guid, "shadow AI detected by tiptoe: "+strings.Join(services, ", ")); err != nil {
+					if err := ampClient.Isolate(guid, "shadow AI detected by aism: "+strings.Join(services, ", ")); err != nil {
 						fmt.Fprintf(os.Stderr, "      [!] secure-endpoint: isolate: %v\n", err)
 					} else {
 						fmt.Fprintf(os.Stderr, "      [+] secure-endpoint: endpoint isolated\n")

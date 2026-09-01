@@ -2,7 +2,7 @@ package cisco
 
 import "strings"
 
-// TaxonomyEntry maps a tiptoe-detected service to a Cisco AI Taxonomy entry.
+// TaxonomyEntry maps a aism-detected service to a Cisco AI Taxonomy entry.
 // Source: Cisco AI Taxonomy Navigator v1.0.0
 // https://learn-cloudsecurity.cisco.com/ai-security-framework
 type TaxonomyEntry struct {
@@ -306,7 +306,7 @@ var serviceEntries = map[string][]TaxonomyEntry{
 }
 
 // Classify returns all Cisco AI Taxonomy entries that apply to the given service name.
-// The service string should be the raw label from tiptoe's fingerprinter
+// The service string should be the raw label from aism's fingerprinter
 // (e.g. "ollama", "qdrant", "mcp-server"). Case-insensitive prefix match.
 // Returns nil if the service has no known taxonomy mapping.
 func Classify(service string) []TaxonomyEntry {

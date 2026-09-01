@@ -3,7 +3,7 @@ package main
 import "time"
 
 // Provenance records HOW a fact about the host is known. A Shodan-cached
-// banner and a service tiptoe completed a handshake with this run are not the
+// banner and a service aism completed a handshake with this run are not the
 // same claim — one may be weeks stale, the other is live. Every reported fact
 // carries its provenance so a reader never confuses the two.
 type Provenance string
@@ -12,11 +12,11 @@ const (
 	// ProvPassive — observed by Shodan or certificate transparency. Zero
 	// packets were sent to the target to learn it. May be stale.
 	ProvPassive Provenance = "passive-cached"
-	// ProvActive — tiptoe completed the protocol exchange itself, this run.
+	// ProvActive — aism completed the protocol exchange itself, this run.
 	ProvActive Provenance = "active-verified"
 )
 
-// Intel is the phase-0 passive picture: everything tiptoe can learn about a
+// Intel is the phase-0 passive picture: everything aism can learn about a
 // host WITHOUT sending it a single packet. Built from resolver lookups,
 // Shodan's cached crawl, and certificate-transparency logs.
 type Intel struct {
@@ -52,7 +52,7 @@ type Probe struct {
 // Match confidence — borrowed from nmap's service-detection engine. A
 // confirmed match means the platform's own API contract was spoken and
 // answered; a tentative match is a soft signal only (nmap's "softmatch") —
-// the family is likely but unproven. tiptoe never reports a finding off a
+// the family is likely but unproven. aism never reports a finding off a
 // tentative match: claim only what the response proves (Insight #51).
 const (
 	MatchConfirmed = "confirmed"
@@ -70,7 +70,7 @@ const (
 	StateReset    = "RESET"             // TCP RST — actively refused
 )
 
-// Assessment is one full tiptoe run.
+// Assessment is one full aism run.
 type Assessment struct {
 	Target         string      `json:"target"`
 	StartedAt      string      `json:"started_at"`

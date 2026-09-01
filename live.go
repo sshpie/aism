@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// liveUI renders tiptoe's progress while it runs. tiptoe is slow on purpose —
+// liveUI renders aism's progress while it runs. aism is slow on purpose —
 // the congestion-control pacer can wait two minutes between probes — so a
 // static log would look frozen. The live status line makes the controller's
 // work visible: you watch it pace, speed up, slow down, and back off in real

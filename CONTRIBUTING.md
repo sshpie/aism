@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for your interest in contributing to tiptoe.
+Thank you for your interest in contributing to aism.
 
 ## How to contribute
 
@@ -18,14 +18,14 @@ Thank you for your interest in contributing to tiptoe.
 ## Reporting issues
 
 Open a GitHub issue with:
-- tiptoe version (`tiptoe version`)
+- aism version (`aism version`)
 - The command you ran
 - The output you saw
 - The output you expected
 
 ## Cisco DevNet
 
-tiptoe is listed on the [Cisco DevNet Code Exchange](https://developer.cisco.com/codeexchange/). Contributions that extend the Catalyst Center, Cisco XDR, or Webex integrations are especially welcome. See the `cisco/` package for the integration surface.
+aism is listed on the [Cisco DevNet Code Exchange](https://developer.cisco.com/codeexchange/). Contributions that extend the Catalyst Center, Cisco XDR, or Webex integrations are especially welcome. See the `cisco/` package for the integration surface.
 
 ## Code of Conduct
 

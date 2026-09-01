@@ -5,20 +5,20 @@ import (
 	"time"
 )
 
-// Pacer is tiptoe's congestion-control engine. It treats a stealth assessment
+// Pacer is aism's congestion-control engine. It treats a stealth assessment
 // as a flow to be rate-controlled, and combines two bodies of theory.
 //
 // From TCP congestion control:
 //
 //   - TCP Vegas — delay-gradient sensing. Vegas watches round-trip time and
 //     reads a rising RTT as a queue building, slowing down BEFORE a packet is
-//     dropped. tiptoe does the same: a host whose answers are slowing is
-//     starting to throttle us, and tiptoe backs off proactively.
+//     dropped. aism does the same: a host whose answers are slowing is
+//     starting to throttle us, and aism backs off proactively.
 //
 //   - TCP Reno — multiplicative decrease. A lost probe (a silent drop, or a
 //     RST) is treated like a lost segment: the probe rate is cut hard.
 //
-// tiptoe deliberately does NOT take slow start from TCP. A bulk transfer ramps
+// aism deliberately does NOT take slow start from TCP. A bulk transfer ramps
 // up exponentially because it wants to find the bandwidth ceiling fast. A
 // stealth probe wants the opposite — to never touch the ceiling. So the
 // control variable here is an inter-probe INTERVAL, the inverse of TCP's
@@ -36,7 +36,7 @@ import (
 type Pacer struct {
 	// configuration
 	baseInterval time.Duration // the interval a run starts at
-	minInterval  time.Duration // floor — tiptoe never probes faster than this
+	minInterval  time.Duration // floor — aism never probes faster than this
 	maxInterval  time.Duration // ceiling — a fully backed-off interval
 	step         time.Duration // additive increase/decrease unit
 	jitter       float64       // ± fraction of randomization on every Wait

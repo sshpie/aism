@@ -12,7 +12,7 @@ import (
 
 const webexAPIBase = "https://webexapis.com/v1"
 
-// WebexClient sends tiptoe assessment summaries to a Cisco Webex room.
+// WebexClient sends aism assessment summaries to a Cisco Webex room.
 type WebexClient struct {
 	Token  string
 	RoomID string
@@ -115,7 +115,7 @@ func (w *WebexClient) post(path string, payload any) (*http.Response, error) {
 	return w.client.Do(req)
 }
 
-// Notify posts a plain-text tiptoe assessment summary to the configured Webex room.
+// Notify posts a plain-text aism assessment summary to the configured Webex room.
 // For a richer structured card with action buttons, use NotifyCard.
 func (w *WebexClient) Notify(target, ip string, services []string, blocked bool) error {
 	md := formatMarkdown(target, ip, services, blocked)
@@ -191,7 +191,7 @@ func (w *WebexClient) NotifyCard(target, ip, platform, family string, port int, 
 			},
 		},
 	}
-	fallbackMD := fmt.Sprintf("**tiptoe** — shadow AI detected: **%s** on `%s` (port %s)", platform, target, portStr)
+	fallbackMD := fmt.Sprintf("**aism** — shadow AI detected: **%s** on `%s` (port %s)", platform, target, portStr)
 	msg := webexCardMessage{
 		RoomID:   w.RoomID,
 		Markdown: fallbackMD,
@@ -216,13 +216,13 @@ func (w *WebexClient) NotifyCard(target, ip, platform, family string, port int, 
 // a POST with the action event — call GetAttachmentAction(event.id) to retrieve
 // the encrypted form data.
 //
-// Idempotent by name: if a webhook named "tiptoe-card-actions" already exists,
+// Idempotent by name: if a webhook named "aism-card-actions" already exists,
 // the API will create a second one. List and deduplicate if needed.
 //
 // Required scope: spark:all
 func (w *WebexClient) RegisterActionWebhook(targetURL string) (*WebhookRegistration, error) {
 	payload := map[string]string{
-		"name":      "tiptoe-card-actions",
+		"name":      "aism-card-actions",
 		"targetUrl": targetURL,
 		"resource":  "attachmentActions",
 		"event":     "created",
@@ -274,7 +274,7 @@ func (w *WebexClient) GetAttachmentAction(actionID string) (*ActionEvent, error)
 // NotifySummary posts a catalog-run summary to the Webex room.
 func (w *WebexClient) NotifySummary(total, withFindings int, flagged []string) error {
 	var sb strings.Builder
-	sb.WriteString("**tiptoe catalog complete**\n\n")
+	sb.WriteString("**aism catalog complete**\n\n")
 	sb.WriteString(fmt.Sprintf("Scanned **%d** managed devices — ", total))
 	if withFindings == 0 {
 		sb.WriteString("no shadow AI/ML services found.\n")
@@ -318,7 +318,7 @@ func (w *WebexClient) PostThreadReply(parentID, markdown string) error {
 }
 
 // EnsureRoom returns the roomId for a space named title, creating it if it
-// does not exist. Use to automatically provision a "tiptoe-alerts" space when
+// does not exist. Use to automatically provision a "aism-alerts" space when
 // the operator does not supply --webex-room.
 func (w *WebexClient) EnsureRoom(title string) (roomID string, err error) {
 	// list spaces, find by title
@@ -369,7 +369,7 @@ func (w *WebexClient) EnsureRoom(title string) (roomID string, err error) {
 
 func formatMarkdown(target, ip string, services []string, blocked bool) string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("**tiptoe** — `%s`", target))
+	sb.WriteString(fmt.Sprintf("**aism** — `%s`", target))
 	if ip != "" && ip != target {
 		sb.WriteString(fmt.Sprintf(" (`%s`)", ip))
 	}

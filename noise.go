@@ -6,10 +6,10 @@ import (
 )
 
 // NoiseReport quantifies how loud a run was. Most scanners never tell you this;
-// tiptoe treats noise as a budget you spend. A portscan detector (Snort's
+// aism treats noise as a budget you spend. A portscan detector (Snort's
 // sfPortscan and its kin) fires on rapid connections to many distinct ports
 // from one source — so the two numbers that matter are the count of distinct
-// ports touched and the peak connection rate. tiptoe, serialized and paced,
+// ports touched and the peak connection rate. aism, serialized and paced,
 // is structurally quiet; this report proves it instead of asserting it.
 type NoiseReport struct {
 	Connections  int     `json:"connections"`
@@ -22,7 +22,7 @@ type NoiseReport struct {
 // portscanBudget is a deliberately conservative estimate of how many
 // distinct-port connections within a rolling minute a typical IPS portscan
 // rule tolerates before it flags the source. Real thresholds vary by sensor
-// and tuning; tiptoe uses this only to render a budget gauge, never to make a
+// and tuning; aism uses this only to render a budget gauge, never to make a
 // safety guarantee.
 const portscanBudget = 10.0
 

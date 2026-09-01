@@ -1,3 +1,3 @@
-module github.com/sshpie/tiptoe
+module github.com/sshpie/aism
 
 go 1.22.2
