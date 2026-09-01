@@ -64,7 +64,7 @@ Single Go binary, standard library only, Go 1.22 or later.
 | Serial active probing | Never parallel; never a port scan signature |
 | Congestion-controlled pacer | TCP Vegas delay-gradient backoff + TCP Reno multiplicative decrease |
 | Block detection | Halts when a host goes silent mid-probe; reports why |
-| JSON output | Structured for `visorlog ingest` or any downstream stage |
+| JSON output | Machine-readable findings for SIEM, ticketing, or custom pipelines |
 
 ---
 
