@@ -99,6 +99,11 @@ catalog flags:
   --webex-token <token>   post catalog summary to Webex
   --webex-room <id>
 
+  ThousandEyes correlation (optional):
+  --meraki-api-key <key>      Meraki Dashboard API key
+  --meraki-org-id <id>        Meraki organization ID
+  --meraki-network-ids <csv>  Meraki network IDs to correlate (comma-separated)
+
 examples:
   tiptoe assess  10.0.0.1
   tiptoe assess  10.0.0.1 --ports 8000,11434 --json
@@ -255,6 +260,9 @@ func runCatalog(args []string) {
 	xdrRegion := fs.String("xdr-region", "us", "Cisco XDR region (us|eu|apjc)")
 	webexToken := fs.String("webex-token", "", "Webex bot token")
 	webexRoom := fs.String("webex-room", "", "Webex room ID")
+	merakiAPIKey := fs.String("meraki-api-key", "", "Meraki Dashboard API key")
+	merakiOrgID := fs.String("meraki-org-id", "", "Meraki organization ID")
+	merakiNetworkIDs := fs.String("meraki-network-ids", "", "comma-separated Meraki network IDs")
 	_ = fs.Parse(args)
 
 	if *catalystURL == "" || *catalystToken == "" {
@@ -281,6 +289,25 @@ func runCatalog(args []string) {
 	var webexClient *cisco.WebexClient
 	if *webexToken != "" && *webexRoom != "" {
 		webexClient = cisco.NewWebexClient(*webexToken, *webexRoom)
+	}
+
+	// ThousandEyes — query once upfront and cache; correlate after each finding.
+	var teApps []cisco.TEApplication
+	if *merakiAPIKey != "" && *merakiOrgID != "" && *merakiNetworkIDs != "" {
+		netIDStrs := strings.Split(*merakiNetworkIDs, ",")
+		for i := range netIDStrs {
+			netIDStrs[i] = strings.TrimSpace(netIDStrs[i])
+		}
+		te := cisco.NewMerakiThousandEyesClient(*merakiOrgID, *merakiAPIKey, netIDStrs)
+		fmt.Fprintf(os.Stderr, "[*] querying ThousandEyes application assurance (%d network(s))...\n",
+			len(netIDStrs))
+		var teErr error
+		teApps, teErr = te.Applications(0)
+		if teErr != nil {
+			fmt.Fprintf(os.Stderr, "[!] thousandeyes: %v\n", teErr)
+		} else {
+			fmt.Fprintf(os.Stderr, "[+] ThousandEyes: %d application(s) loaded\n", len(teApps))
+		}
 	}
 
 	staticPorts := parsePorts(*portsCSV)
@@ -329,6 +356,21 @@ func runCatalog(args []string) {
 				fmt.Fprintf(os.Stderr, "      [!] catalyst tag: %v\n", err)
 			} else {
 				fmt.Fprintf(os.Stderr, "      [+] catalyst: tagged device\n")
+			}
+		}
+
+		// ThousandEyes correlation — report degraded apps on the same networks.
+		if len(teApps) > 0 {
+			degraded := cisco.DegradedSummary(teApps, 70)
+			if degraded != "" {
+				fmt.Fprintf(os.Stderr, "      [!] thousandeyes: degraded apps on same network:\n")
+				for _, line := range strings.Split(strings.TrimRight(degraded, "\n"), "\n") {
+					fmt.Fprintf(os.Stderr, "            %s\n", line)
+				}
+				// Append ThousandEyes context to the services list for XDR/Webex.
+				services = append(services,
+					fmt.Sprintf("ThousandEyes degradation: %s",
+						strings.ReplaceAll(strings.TrimRight(degraded, "\n"), "\n", "; ")))
 			}
 		}
 

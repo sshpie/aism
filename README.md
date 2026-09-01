@@ -26,7 +26,7 @@ AI/ML services are being deployed on enterprise networks without the knowledge o
 
 Traditional scanners applied to a single monitored host generate a recognizable scan signature. An IPS flags the source and every tool that follows sees a dark host. Security teams get false negatives presented as findings.
 
-tiptoe is the quiet alternative. It integrates with **Cisco Catalyst Center** to pull managed device inventory, assesses each device below IPS detection thresholds, and pushes findings back to **Cisco XDR** and **Cisco Webex**.
+tiptoe is the quiet alternative. It integrates with **Cisco Catalyst Center** to pull managed device inventory, assesses each device below IPS detection thresholds, correlates findings with **ThousandEyes** application health via the Meraki assurance API, and pushes results to **Cisco XDR** and **Cisco Webex**.
 
 ---
 
@@ -47,9 +47,11 @@ Catalyst Center
           |
           +-- VERIFIED_UNAUTH findings (Ollama, Qdrant, MLflow, ...)
           |
-          +-- Catalyst Center  tag device "shadow-ai-detected"
-          +-- Cisco XDR        CTIM sighting bundle (IP + services)
-          +-- Webex            per-device alert + catalog summary
+          +-- Catalyst Center   tag device "shadow-ai-detected"
+          +-- ThousandEyes      correlate degraded app scores (score < 70)
+          |   (Meraki assurance API: app health + impacted client count)
+          +-- Cisco XDR         CTIM sighting bundle (IP + services + TE context)
+          +-- Webex             per-device alert + catalog summary
 ```
 
 ### Catalyst Center
@@ -87,12 +89,42 @@ tiptoe catalog \
   --webex-room ROOM_ID
 ```
 
+### ThousandEyes (via Meraki Assurance API)
+
+When shadow AI is found on a device, tiptoe queries the Meraki ThousandEyes assurance endpoint
+(`GET /api/v1/organizations/{orgId}/assurance/thousandEyes/applications`) for the configured
+networks and reports any applications with a health score below 70. This correlates an unauthorized
+inference server on a managed device with measurable application degradation affecting real users —
+turning a theoretical finding into a quantified business impact.
+
+```bash
+tiptoe catalog \
+  --catalyst-url https://catalyst.corp.example.com \
+  --catalyst-token TOKEN \
+  --meraki-api-key MERAKI_API_KEY \
+  --meraki-org-id ORG_ID \
+  --meraki-network-ids N_abc123,N_def456 \
+  --webex-token BOT_TOKEN \
+  --webex-room ROOM_ID
+```
+
+Example output when shadow AI and application degradation are correlated:
+
+```
+[!] shadow AI/ML: ollama :11434 [VERIFIED_UNAUTH], qdrant :6333 [VERIFIED_UNAUTH]
+[+] catalyst: tagged device
+[!] thousandeyes: degraded apps on same network:
+      Microsoft 365 (score 42, -18) — 37 client(s) impacted; alerts: High packet loss to O365 endpoints
+      Zoom (score 61, -9) — 14 client(s) impacted
+```
+
 ---
 
 ## Features
 
 - Single Go binary, standard library only, Go 1.22 or later
 - **Cisco Catalyst Center** integration — pull device inventory, push shadow-AI tags
+- **ThousandEyes** correlation via Meraki assurance API — app health scores + impacted client counts
 - **Cisco XDR** integration — CTIM sighting bundle submission via OAuth2
 - **Cisco Webex** integration — per-device alerts and catalog summaries
 - Passive phase sends the host zero packets (Shodan host API, reverse DNS, crt.sh)
@@ -180,6 +212,9 @@ catalog flags:
   --xdr-region <r>          us (default) | eu | apjc
   --webex-token <token>     Webex bot bearer token
   --webex-room <id>         Webex room ID
+  --meraki-api-key <key>    Meraki Dashboard API key (ThousandEyes correlation)
+  --meraki-org-id <id>      Meraki organization ID
+  --meraki-network-ids <csv> comma-separated Meraki network IDs to correlate
 
 assess flags:
   --ports <csv>             ports to probe (default: from passive intel)
