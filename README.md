@@ -39,17 +39,17 @@ Single Go binary, standard library only, Go 1.22 or later.
 | Product | What AISM does |
 |---|---|
 | Catalyst Center | Pull device inventory; tag shadow-AI devices |
-| AI Taxonomy | Label every finding with OB/AITech/AISubtech IDs |
+| AI Taxonomy | Label findings with OB/AITech/AISubtech IDs |
 | Secure Access (SSE) | Block shadow-AI IPs at the IP layer |
 | Umbrella | Block shadow-AI IPs at the DNS layer |
-| Secure Endpoint | Connector lookup by IP; optional endpoint isolation |
-| ISE | Apply ANC quarantine policy (identity/VLAN layer) |
-| AI Defense | Register MCP servers for supply chain scan; query runtime enforcement |
-| Secure Network Analytics | Query flows to shadow-AI IPs; confirm active usage and client count |
+| Secure Endpoint | Connector lookup by IP; optional isolation |
+| ISE | Apply ANC quarantine (identity/VLAN layer) |
+| AI Defense | MCP supply chain scan; runtime enforcement query |
+| Secure Network Analytics | Confirm active usage and client count via flows |
 | NSO (RESTCONF) | Push ACL deny rules to all managed devices |
-| ThousandEyes | Correlate app health scores; provision TE agents on shadow-AI networks |
+| ThousandEyes | Correlate app health; provision agents on affected networks |
 | XDR | Submit CTIM sighting bundle via OAuth2 |
-| Webex | Send Adaptive Card findings with Acknowledge/Isolate action buttons |
+| Webex | Adaptive Card findings with Acknowledge/Isolate buttons |
 
 **Detection & scanning**
 
