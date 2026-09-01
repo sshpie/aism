@@ -56,7 +56,7 @@ func printBanner() {
  /_/ \_\___|___/_|  |_|`+sgr(ansiReset)+sgr(ansiDim)+`  v`+version+
 		sgr(ansiReset)+`
 
-`+sgr(ansiBold)+`   Enterprise Shadow AI discovery`+sgr(ansiReset)+"\n")
+`+sgr(ansiBold)+`   AI Attack Surface Management (AISM)`+sgr(ansiReset)+"\n")
 }
 
 func usage() {
