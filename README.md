@@ -34,20 +34,37 @@ AISM pulls device inventory from **Cisco Catalyst Center** and assesses each hos
 
 Single Go binary, standard library only, Go 1.22 or later.
 
-| Cisco integrations | Detection & scanning |
+**Cisco integrations**
+
+| Product | What AISM does |
 |---|---|
-| **Catalyst Center** — device inventory pull, shadow-AI tagging | **100+ platform fingerprints** — inference servers, vector DBs, agent platforms, document processors, model registries, voice AI, MCP servers, Cisco network infrastructure |
-| **AI Taxonomy** — every finding labeled with OB/AITech/AISubtech IDs | **Voice AI layer** — 42 fingerprints; CORS/CSWSH check on confirmed voice services |
-| **Secure Access (SSE)** — IP-layer containment via destination block list | **MCP HTTP server detection** — `tools/list` scan for V2 tool description injection; escalates to CRITICAL |
-| **Umbrella** — DNS-layer containment via block list | **Ollama model poisoning** — impersonation names, V2 system prompt injection, V3 message history injection; escalates to CRITICAL |
-| **Secure Endpoint** — connector lookup by IP; optional endpoint isolation | **Cisco ASA WebVPN** — SAML metadata exposure, `fcadbadd=1` logon bypass, ASDM version extraction |
-| **ISE** — ANC quarantine policy (identity/VLAN-layer containment) | **Passive phase** — zero packets sent (Shodan, reverse DNS, crt.sh) |
-| **AI Defense** — MCP server supply chain scan; runtime enforcement query | **Serial active probing** — never parallel, never a port scan signature |
-| **Secure Network Analytics** — flow query to confirm active usage, client count, byte volume | **Congestion-controlled pacer** — TCP Vegas delay-gradient + TCP Reno multiplicative decrease |
-| **NSO (RESTCONF)** — ACL push to all managed devices (network device level containment) | **Block detection** — halts when a host goes silent mid-probe, reports why |
-| **ThousandEyes** — app score correlation; TE agent provisioning on shadow-AI networks | **Pacer trace** — measured RTT, baseline, phi, and decision in every report |
-| **XDR** — CTIM sighting bundle via OAuth2 | **Noise budget** — connection count and peak rate vs. portscan-detection threshold |
-| **Webex** — Adaptive Card findings; Acknowledge/Isolate buttons; threaded containment follow-up | **JSON output** — structured for `visorlog ingest` or any downstream stage |
+| Catalyst Center | Pull device inventory; tag shadow-AI devices |
+| AI Taxonomy | Label every finding with OB/AITech/AISubtech IDs |
+| Secure Access (SSE) | Block shadow-AI IPs at the IP layer |
+| Umbrella | Block shadow-AI IPs at the DNS layer |
+| Secure Endpoint | Connector lookup by IP; optional endpoint isolation |
+| ISE | Apply ANC quarantine policy (identity/VLAN layer) |
+| AI Defense | Register MCP servers for supply chain scan; query runtime enforcement |
+| Secure Network Analytics | Query flows to shadow-AI IPs; confirm active usage and client count |
+| NSO (RESTCONF) | Push ACL deny rules to all managed devices |
+| ThousandEyes | Correlate app health scores; provision TE agents on shadow-AI networks |
+| XDR | Submit CTIM sighting bundle via OAuth2 |
+| Webex | Send Adaptive Card findings with Acknowledge/Isolate action buttons |
+
+**Detection & scanning**
+
+| Capability | Detail |
+|---|---|
+| 100+ platform fingerprints | Inference servers, vector DBs, agent platforms, document processors, model registries, voice AI, MCP servers, Cisco network infrastructure |
+| Voice AI layer | 42 fingerprints across TTS, ASR, and voice infrastructure; CORS/CSWSH check on confirmed services |
+| MCP HTTP server detection | `tools/list` scan for V2 tool description injection; escalates to CRITICAL |
+| Ollama model poisoning | Flags worm artifacts, impersonation names, V2 system prompt injection, V3 message history injection; escalates to CRITICAL |
+| Cisco ASA WebVPN | SAML metadata exposure, `fcadbadd=1` logon bypass, ASDM version extraction |
+| Passive phase | Zero packets sent to the host (Shodan, reverse DNS, crt.sh) |
+| Serial active probing | Never parallel; never a port scan signature |
+| Congestion-controlled pacer | TCP Vegas delay-gradient backoff + TCP Reno multiplicative decrease |
+| Block detection | Halts when a host goes silent mid-probe; reports why |
+| JSON output | Structured for `visorlog ingest` or any downstream stage |
 
 ---
 
